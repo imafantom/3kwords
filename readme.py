@@ -1,81 +1,138 @@
-import streamlit as st
-import pandas as pd, numpy as np, time, random
-from sqlalchemy import create_engine
+import sys
 
-# ——— 1) Load data & DB ———
-@st.cache
+# Ensure Streamlit is available
+try:
+    import streamlit as st
+except ModuleNotFoundError:
+    sys.exit("ModuleNotFoundError: The 'streamlit' module is not installed.\nInstall it: pip install streamlit, then run: streamlit run main.py")
+
+import pandas as pd
+import time
+import random
+import sqlite3
+
+# ——— Database setup using sqlite3 (no external libs) ———
+conn = sqlite3.connect("progress.db", check_same_thread=False)
+
+def init_db():
+    """Create progress table if it doesn't exist."""
+    cur = conn.cursor()
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS progress (
+            timestamp TEXT,
+            set_index INTEGER,
+            correct INTEGER
+        )
+        """
+    )
+    conn.commit()
+
+init_db()
+
+# ——— Load vocabulary ———
+@st.cache_data
 def load_vocab():
+    """Load the 3k-word list from CSV."""
     return pd.read_csv("data/vocab.csv")
 
 vocab = load_vocab()
-engine = create_engine("sqlite:///progress.db")   # stores scores
 
-# ——— 2) Initialization ———
+# ——— Session-state defaults ———
 if "set_idx" not in st.session_state:
-    st.session_state.set_idx  = 0
-    st.session_state.score    = 0
-    st.session_state.phase    = "intro"   # intro | reading | quiz | review
+    st.session_state.set_idx = 0
+    st.session_state.score = 0
+    st.session_state.phase = "intro"  # intro | reading | quiz | review
 
-# ——— 3) Helpers ———
+# ——— Utility: pick next random set of 10 words ———
 def pick_next_set():
     return vocab.sample(10, replace=False).reset_index(drop=True)
 
+# Initialize the first set
 if "current_set" not in st.session_state:
     st.session_state.current_set = pick_next_set()
 
-# ——— 4) Phase: Intro ———
+# ——— Sidebar: progress visualization & download ———
+st.sidebar.title("Your Progress")
+if st.sidebar.checkbox("Show my progress 📈"):
+    df_progress = pd.read_sql_query("SELECT * FROM progress", conn)
+    if not df_progress.empty:
+        df_progress["timestamp"] = pd.to_datetime(df_progress["timestamp"])
+        df_cum = df_progress.set_index("timestamp")["correct"].cumsum()
+        st.sidebar.line_chart(df_cum)
+    else:
+        st.sidebar.write("No progress to show yet.")
+
+if st.sidebar.button("Download my progress"):
+    df_progress = pd.read_sql_query("SELECT * FROM progress", conn)
+    if not df_progress.empty:
+        csv = df_progress.to_csv(index=False)
+        st.sidebar.download_button("Download CSV", csv, "my_progress.csv", mime="text/csv")
+    else:
+        st.sidebar.write("No data available.")
+
+# ——— Main phases ———
+
+# 1) Intro: prompt to start
 if st.session_state.phase == "intro":
     st.title("🔤 English–Polish Speed-Quiz")
-    st.write("Ready to gobble up 10 new words in a minute? Press ▶️ Start.")
+    st.write(
+        "Welcome! You'll see **10 words** for **60 seconds**—try to memorize them, then match each Polish word to its English partner. Ready?"
+    )
     if st.button("▶️ Start reading"):
-        st.session_state.phase     = "reading"
+        st.session_state.phase = "reading"
         st.session_state.start_time = time.time()
         st.experimental_rerun()
 
-# ——— 5) Phase: Reading ———
+# 2) Reading phase: display words with countdown
 elif st.session_state.phase == "reading":
     elapsed = time.time() - st.session_state.start_time
-    st.write(f"⏱️ Reading time: {int(60-elapsed)}s left")
+    remaining = max(0, int(60 - elapsed))
+    st.write(f"⏱️ Reading time remaining: **{remaining}s**")
     cols = st.columns(2)
     for i, row in st.session_state.current_set.iterrows():
-        cols[i % 2].markdown(f"**{row.english}** — {row.polish}")
-    st.progress(elapsed/60)
+        cols[i % 2].markdown(f"**{row['english']}** — _{row['polish']}_")
+    st.progress(min(elapsed / 60, 1.0))
     if elapsed >= 60:
         st.session_state.phase = "quiz"
         st.experimental_rerun()
     else:
+        time.sleep(1)
         st.experimental_rerun()
 
-# ——— 6) Phase: Quiz ———
+# 3) Quiz phase: matching exercise
 elif st.session_state.phase == "quiz":
-    st.write("Match each **Polish** word to its **English** buddy.")
+    st.write("### Match each **English** word to its **Polish** translation:")
     answers = {}
-    options = list(st.session_state.current_set.polish)
-    for idx, eng in enumerate(st.session_state.current_set.english):
-        answers[idx] = st.selectbox(f"{eng} →", [""] + options, key=f"q{idx}")
+    options = [""] + st.session_state.current_set['polish'].tolist()
+    for idx, eng in enumerate(st.session_state.current_set['english']):
+        answers[idx] = st.selectbox(f"{eng} →", options, key=f"q{idx}")
+
     if st.button("Submit answers"):
-        correct = 0
-        for idx, choice in answers.items():
-            if choice == st.session_state.current_set.loc[idx, "polish"]:
-                correct += 1
+        correct = sum(
+            1 for idx, choice in answers.items()
+            if choice == st.session_state.current_set.loc[idx, 'polish']
+        )
         st.session_state.score += correct
-        # log progress
-        pd.DataFrame({
-            "timestamp": [pd.Timestamp.now()],
-            "set":       [st.session_state.set_idx],
-            "correct":   [correct]
-        }).to_sql("progress", engine, if_exists="append", index=False)
-        st.session_state.phase = "review"
+        # Log progress via sqlite3
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO progress (timestamp, set_index, correct) VALUES (?, ?, ?)",
+            (pd.Timestamp.now().isoformat(), st.session_state.set_idx, correct)
+        )
+        conn.commit()
+
         st.session_state.correct = correct
+        st.session_state.phase = "review"
         st.experimental_rerun()
 
-# ——— 7) Phase: Review & Next ———
+# 4) Review phase: show results and next
 elif st.session_state.phase == "review":
-    st.write(f"✅ You got **{st.session_state.correct}/10** this round.")
-    st.write(f"🏆 Total score: **{st.session_state.score}**")
+    st.write(f"✅ You got **{st.session_state.correct}/10** correct this round.")
+    st.write(f"🏆 Total score so far: **{st.session_state.score}**")
     if st.button("Next 10 words"):
-        st.session_state.set_idx   += 1
+        st.session_state.set_idx += 1
         st.session_state.current_set = pick_next_set()
-        st.session_state.phase     = "reading"
+        st.session_state.phase = "reading"
         st.session_state.start_time = time.time()
         st.experimental_rerun()
