@@ -5,7 +5,7 @@ import time
 import re # For highlighting words in sentences
 
 # st.set_page_config() MUST be the first Streamlit command after imports
-st.set_page_config(layout="centered") # Centered layout often looks more appealing
+st.set_page_config(layout="centered")
 
 # --- Helper Functions ---
 @st.cache_data # Cache the data loading
@@ -59,9 +59,8 @@ def load_words():
             'Use your brain.', 'Take a break.', 'Bring it here.', 'He is my brother.', 'They will build a house.', 'The fire will burn.', 'Take the bus.', 'This is my business.', 'I like it, but...', 'I will buy it.', 'Come by my office.'
             ]
     }
-    # Ensure all lists have the same length for DataFrame creation
     min_len = min(len(data['English Word']), len(data['Polish Translation']), len(data['Example Sentence']))
-    for key_val in data: # Corrected variable name from key to key_val
+    for key_val in data:
         data[key_val] = data[key_val][:min_len]
 
     df = pd.DataFrame(data)
@@ -77,22 +76,19 @@ def get_new_word_set(words_list, num_words=10, seen_indices=None):
     if len(available_indices) < num_words:
         st.warning("Not enough new words, sampling from all words again. Consider restarting for fresh unseen words if available.")
         available_indices = list(range(len(words_list)))
-        if not available_indices and words_list: # If list not empty but no available_indices (e.g. all seen and now trying to reset)
+        if not available_indices and words_list:
              st.info("All words might have been cycled through. Restarting seen words tracking for this round.")
-             seen_indices.clear() # Clear seen words to allow reuse
+             seen_indices.clear()
              available_indices = list(range(len(words_list)))
-        elif not words_list: # The initial ALL_WORDS list is empty
+        elif not words_list:
              return []
-
 
     chosen_indices = random.sample(available_indices, min(num_words, len(available_indices)))
     new_set = [words_list[i] for i in chosen_indices]
 
     for i in chosen_indices:
         seen_indices.add(i)
-
     return new_set
-
 
 def highlight_word_in_sentence(sentence, word_to_highlight):
     try:
@@ -107,26 +103,24 @@ def highlight_word_in_sentence(sentence, word_to_highlight):
     except Exception:
         return sentence
 
-
 # Apply global styles for font and specific orange highlights
 st.markdown("""
     <style>
         body, .stApp, .stButton>button, .stSelectbox div[data-baseweb='select'] > div, .stTextInput > div > div > input, .stMetric > div > div {
-            font-size: 18px !important; /* Consistent font size */
+            font-size: 18px !important;
         }
-        .stSubheader { /* Target st.subheader */
+        .stSubheader {
             font-size: 22px !important;
             font-weight: bold;
         }
         .orange-text {
             color: orange;
-            font-weight: bold; /* Make orange text bold for emphasis */
+            font-weight: bold;
         }
-        /* Style for the timer text */
         .timer-text {
             font-size: 20px !important;
             font-weight: bold;
-            color: #1E90FF; /* DodgerBlue */
+            color: #1E90FF;
             text-align: center;
             margin-bottom: 10px;
         }
@@ -136,21 +130,20 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-
 st.title("🇬🇧 English Vocabulary Practice 🇵🇱")
 
 # Initialize session state variables
 if 'stage' not in st.session_state:
     st.session_state.stage = "welcome"
-    st.session_state.all_words = ALL_WORDS # Loaded once
+    st.session_state.all_words = ALL_WORDS
     st.session_state.score = 0
     st.session_state.current_word_set = []
     st.session_state.test_answers = {}
-    st.session_state.timer_start_time = 0 # For general test timer
+    st.session_state.timer_start_time = 0
     st.session_state.round_number = 0
     st.session_state.seen_words_indices = set()
     st.session_state.current_learning_word_index = 0
-    st.session_state.learning_word_start_time = 0 # For individual word timer
+    st.session_state.learning_word_start_time = 0
 
 # --- Welcome Stage ---
 if st.session_state.stage == "welcome":
@@ -170,16 +163,14 @@ if st.session_state.stage == "welcome":
 
 # --- Learning Stage (Individual Word Display) ---
 elif st.session_state.stage == "learning_individual":
-    if not st.session_state.current_word_set: # Safety check
+    if not st.session_state.current_word_set:
         st.error("Word set is empty. Returning to welcome screen.")
         st.session_state.stage = "welcome"
         st.rerun()
-
     elif st.session_state.current_learning_word_index >= len(st.session_state.current_word_set):
-        # All words in the current set have been displayed
         st.session_state.stage = "test"
-        st.session_state.timer_start_time = time.time() # Start timer for the whole test
-        st.session_state.test_answers = {} # Clear previous answers
+        st.session_state.timer_start_time = time.time()
+        st.session_state.test_answers = {}
         st.rerun()
     else:
         word_data = st.session_state.current_word_set[st.session_state.current_learning_word_index]
@@ -188,9 +179,8 @@ elif st.session_state.stage == "learning_individual":
         time_elapsed_word = time.time() - st.session_state.learning_word_start_time
         time_remaining_word = max(0, 5 - int(time_elapsed_word))
 
-        timer_placeholder_word = st.empty() # Create a placeholder
+        timer_placeholder_word = st.empty()
         timer_placeholder_word.markdown(f"<p class='timer-text'>Time for this word: {time_remaining_word}s</p>", unsafe_allow_html=True)
-
 
         st.markdown(f"## <span class='orange-text'>{word_data['English Word']}</span>", unsafe_allow_html=True)
         st.markdown(f"### 🇵🇱 {word_data['Polish Translation']}")
@@ -202,10 +192,10 @@ elif st.session_state.stage == "learning_individual":
             st.session_state.current_learning_word_index += 1
             if st.session_state.current_learning_word_index < len(st.session_state.current_word_set):
                 st.session_state.learning_word_start_time = time.time()
-            st.rerun() # Rerun to show next word or transition to test
+            st.rerun()
         else:
-            time.sleep(1) # Wait 1 second
-            st.rerun() # Rerun to update the timer display
+            time.sleep(1)
+            st.rerun()
 
 # --- Test Stage ---
 elif st.session_state.stage == "test":
@@ -215,24 +205,20 @@ elif st.session_state.stage == "test":
     time_elapsed_test = time.time() - st.session_state.timer_start_time
     time_remaining_test = max(0, 60 - int(time_elapsed_test))
 
-    # These need to be recreated on each run if they are to be updated
     progress_bar_test_placeholder = st.empty()
     timer_text_test_placeholder = st.empty()
-
     progress_bar_test_placeholder.progress(time_remaining_test / 60)
     timer_text_test_placeholder.markdown(f"<p class='timer-text'>Test time remaining: {time_remaining_test}s</p>", unsafe_allow_html=True)
-
 
     if time_remaining_test <= 0 and 'submitted_test' not in st.session_state:
         st.warning("Time's up! Moving to results with current selections (if any).")
         st.session_state.submitted_test = True # Mark as submitted due to timeout
-        # Logic to gather current form values if possible or just mark as timeout
-        # For simplicity, if time runs out, answers might not be fully captured by form logic below
-        # unless submit was pressed. We'll rely on explicit submission or process empty.
+        # Try to capture whatever is in the form if time runs out.
+        # This part is tricky as st.form values are usually only available on explicit submit.
+        # For now, we'll assume it moves to results and processes what might have been submitted or empty.
         st.session_state.stage = "results"
         st.rerun()
 
-    # Prepare words for the test
     if not st.session_state.current_word_set:
         st.error("No words in the current set for the test. Returning to welcome.")
         st.session_state.stage = "welcome"
@@ -240,9 +226,8 @@ elif st.session_state.stage == "test":
 
     polish_words_for_test = [word['Polish Translation'] for word in st.session_state.current_word_set]
     english_options = [word['English Word'] for word in st.session_state.current_word_set]
-    # random.shuffle(polish_words_for_test) # Optional: shuffle question order
 
-    with st.form(key=f"test_form_round_{st.session_state.round_number}"): # Unique key for the form
+    with st.form(key=f"test_form_round_{st.session_state.round_number}"):
         temp_student_answers_map = {}
         for i, pl_word in enumerate(polish_words_for_test):
             correct_en_word = ""
@@ -250,33 +235,29 @@ elif st.session_state.stage == "test":
                 if wd_data['Polish Translation'] == pl_word:
                     correct_en_word = wd_data['English Word']
                     break
-
-            options_for_select = [""] + english_options[:] # Add blank default
-            random.shuffle(options_for_select[1:]) # Shuffle actual options, keep blank first
-
+            options_for_select = [""] + english_options[:]
+            random.shuffle(options_for_select[1:])
             selected_en_word = st.selectbox(
                 f"**{i+1}. {pl_word}** is:",
                 options=options_for_select,
-                index=0, # Default to blank
-                key=f"test_q_r{st.session_state.round_number}_{i}" # Unique key for selectbox
+                index=0,
+                key=f"test_q_r{st.session_state.round_number}_{i}"
             )
             temp_student_answers_map[pl_word] = {
                 "selected": selected_en_word if selected_en_word else "Not Answered",
                 "correct": correct_en_word
             }
-
         submit_button = st.form_submit_button("✅ Submit Answers")
-
         if submit_button:
             st.session_state.test_answers = temp_student_answers_map
-            st.session_state.submitted_test = True # Mark as submitted
+            st.session_state.submitted_test = True
             st.session_state.stage = "results"
             st.rerun()
 
     if time_remaining_test > 0 and 'submitted_test' not in st.session_state:
-        time.sleep(1) # Refresh the timer display
+        time.sleep(1)
         st.rerun()
-    elif 'submitted_test' in st.session_state: # If submitted, remove the flag for next round
+    elif 'submitted_test' in st.session_state and st.session_state.stage != "results": # Clean up if submitted but not yet in results
         del st.session_state.submitted_test
 
 
@@ -288,25 +269,27 @@ elif st.session_state.stage == "results":
         st.warning("No answers were processed for the test.")
     else:
         for pl_word, answers_data in st.session_state.test_answers.items():
-            selected = answers_data['selected']
-            correct = answers_data['correct']
-            if selected == correct:
-                st.success(f"**{pl_word}**: Your answer <span class='orange-text'>{selected}</span> was CORRECT! 🎉", unsafe_allow_html=True)
-                round_score += 1
-            elif selected == "Not Answered":
-                st.info(f"**{pl_word}**: Not answered. Correct was: <span class='orange-text'>{correct}</span>", unsafe_allow_html=True)
-            else:
-                st.error(f"**{pl_word}**: Your answer <span class='orange-text'>{selected}</span> was INCORRECT. Correct was: <span class='orange-text'>{correct}</span> 🙁", unsafe_allow_html=True)
+            selected_answer = str(answers_data.get('selected', "Not Answered"))
+            correct_answer = str(answers_data.get('correct', ""))
+            pl_word_str = str(pl_word)
 
-        if st.session_state.current_word_set:
+            if selected_answer == correct_answer:
+                st.success(f"**{pl_word_str}**: Your answer <span class='orange-text'>{selected_answer}</span> was CORRECT! 🎉", unsafe_allow_html=True)
+                round_score += 1
+            elif selected_answer == "Not Answered":
+                st.info(f"**{pl_word_str}**: Not answered. Correct was: <span class='orange-text'>{correct_answer}</span>", unsafe_allow_html=True)
+            else:
+                st.error(f"**{pl_word_str}**: Your answer <span class='orange-text'>{selected_answer}</span> was INCORRECT. Correct was: <span class='orange-text'>{correct_answer}</span> 🙁", unsafe_allow_html=True)
+
+        if st.session_state.current_word_set: # Check if word set exists
             st.subheader(f"You scored {round_score} out of {len(st.session_state.current_word_set)} in this round.")
-            # Add round score to total score only if it hasn't been added for this round yet
-            if st.session_state.get(f"round_{st.session_state.round_number}_scored") is None:
+            # Ensure score is added only once per round
+            round_scored_key = f"round_{st.session_state.round_number}_scored"
+            if not st.session_state.get(round_scored_key, False): # Check if this round was already scored
                  st.session_state.score += round_score
-                 st.session_state[f"round_{st.session_state.round_number}_scored"] = True
+                 st.session_state[round_scored_key] = True # Mark as scored
         else:
             st.subheader("No words in this round to score against.")
-
 
     st.metric(label="Total Score", value=st.session_state.score)
 
@@ -318,18 +301,18 @@ elif st.session_state.stage == "results":
             st.session_state.current_word_set = get_new_word_set(st.session_state.all_words, 10, st.session_state.seen_words_indices)
             if not st.session_state.current_word_set:
                 st.error("Could not load new words. Perhaps all words have been seen or the list is empty.")
-                st.session_state.stage = "welcome" # Or end game state
+                st.session_state.stage = "welcome"
             else:
                 st.session_state.current_learning_word_index = 0
                 st.session_state.learning_word_start_time = time.time()
-            st.session_state.test_answers = {} # Clear for next round
-            if 'submitted_test' in st.session_state: del st.session_state.submitted_test
+            st.session_state.test_answers = {}
+            if 'submitted_test' in st.session_state: del st.session_state.submitted_test # Clean up for next round
             st.rerun()
     with col2:
         if st.button("Restart Game 🔄", use_container_width=True):
-            # Full reset for restart
-            for key in list(st.session_state.keys()): # Iterate over a copy of keys
-                if key not in ['all_words']: # Keep all_words loaded
+            keys_to_keep = ['all_words'] # Preserve the loaded word list
+            for key in list(st.session_state.keys()):
+                if key not in keys_to_keep:
                     del st.session_state[key]
             # Re-initialize essential states
             st.session_state.stage = "welcome"
@@ -340,11 +323,9 @@ elif st.session_state.stage == "results":
             st.session_state.current_word_set = []
             st.session_state.test_answers = {}
             st.rerun()
-
 else:
-    st.error("Unknown application stage. Resetting.")
-    # Minimal reset to try and recover
+    st.error("Unknown application stage. Resetting to Welcome screen.")
     st.session_state.stage = "welcome"
-    st.session_state.score = 0
-    st.session_state.round_number = 0
+    st.session_state.score = 0 # Reset score on unknown stage
+    st.session_state.round_number = 0 # Reset round number
     st.rerun()
