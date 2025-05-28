@@ -1,187 +1,81 @@
 import streamlit as st
-import pandas as pd
-import random
-import time
+import pandas as pd, numpy as np, time, random
+from sqlalchemy import create_engine
 
-# --- Helper Functions ---
-def load_words():
-    # This function will parse your document content to extract words.
-    # For now, let's use a placeholder based on your document structure.
-    # You'll need to implement the actual parsing from the tables.
-    # Example:
-    data_a = {
-        'English Word': ['a', 'abandon', 'ability', 'able', 'abortion', 'about', 'above', 'abroad', 'absence', 'absolute'],
-        'Polish Translation': ['a', 'porzucić', 'zdolność', 'zdolny', 'aborcja', 'o, około', 'powyżej', 'za granicą', 'nieobecność', 'absolutny'],
-        'Example Sentence': [
-            'I need a pen.', 'They had to abandon their car in the snow.', 'She has the ability to learn new languages quickly.',
-            'He is able to lift heavy boxes.', 'The debate around abortion is highly controversial.', 'What are you talking about? It\'s about five o\'clock.',
-            'The bird flew above the trees.', 'He decided to study abroad for a year.', 'His absence from the meeting was noted.',
-            'It\'s an absolute necessity.'
-        ]
-    }
-    # ... (load other letters B, C, etc. and combine them)
-    # For demonstration, we'll just use 'data_a'
-    df = pd.DataFrame(data_a)
-    # Convert to list of dicts as it's often easier to work with per row
-    return df.to_dict('records')
+# ——— 1) Load data & DB ———
+@st.cache
+def load_vocab():
+    return pd.read_csv("data/vocab.csv")
 
-ALL_WORDS = load_words() # Load all 3000 words
+vocab = load_vocab()
+engine = create_engine("sqlite:///progress.db")   # stores scores
 
-def get_new_word_set(words_list, num_words=10):
-    # In a real app, you'd filter out already seen/mastered words
-    return random.sample(words_list, min(num_words, len(words_list)))
+# ——— 2) Initialization ———
+if "set_idx" not in st.session_state:
+    st.session_state.set_idx  = 0
+    st.session_state.score    = 0
+    st.session_state.phase    = "intro"   # intro | reading | quiz | review
 
-# --- Streamlit App ---
+# ——— 3) Helpers ———
+def pick_next_set():
+    return vocab.sample(10, replace=False).reset_index(drop=True)
 
-st.set_page_config(layout="wide")
-st.title("🇬🇧 English Vocabulary Practice 🇵🇱")
+if "current_set" not in st.session_state:
+    st.session_state.current_set = pick_next_set()
 
-# Initialize session state variables
-if 'stage' not in st.session_state:
-    st.session_state.stage = "welcome" # welcome, learning, test, results
-    st.session_state.all_words = ALL_WORDS
-    st.session_state.score = 0
-    st.session_state.current_word_set = []
-    st.session_state.test_answers = {}
-    st.session_state.timer_start_time = 0
-    st.session_state.round_number = 0
-    # For progress saving (more advanced)
-    st.session_state.seen_words_indices = set() # Store indices of words shown
+# ——— 4) Phase: Intro ———
+if st.session_state.phase == "intro":
+    st.title("🔤 English–Polish Speed-Quiz")
+    st.write("Ready to gobble up 10 new words in a minute? Press ▶️ Start.")
+    if st.button("▶️ Start reading"):
+        st.session_state.phase     = "reading"
+        st.session_state.start_time = time.time()
+        st.experimental_rerun()
 
-# --- Welcome Stage ---
-if st.session_state.stage == "welcome":
-    st.header("Welcome to the Vocabulary Trainer!")
-    st.write("Press the button below to start a new learning session.")
-    if st.button("🚀 Start Learning"):
-        st.session_state.round_number += 1
-        st.session_state.stage = "learning"
-        st.session_state.current_word_set = get_new_word_set(st.session_state.all_words)
-        # Add indices of new words to seen_words_indices
-        # This is a simplified approach for getting new words;
-        # you might want a more robust way to ensure all words are eventually seen.
-        # For now, we are just randomly sampling.
-        st.session_state.timer_start_time = time.time()
-        st.rerun()
-
-# --- Learning Stage ---
-elif st.session_state.stage == "learning":
-    st.header(f"🧠 Round {st.session_state.round_number}: Learn these words!")
-    st.info("You have 1 minute to memorize these words.")
-
-    time_elapsed = time.time() - st.session_state.timer_start_time
-    time_remaining = max(0, 60 - int(time_elapsed))
-    timer_placeholder = st.empty()
-    timer_placeholder.progress(time_remaining / 60)
-    timer_placeholder.write(f"Time remaining: {time_remaining} seconds")
-
-    if time_remaining <= 0:
-        st.session_state.stage = "test"
-        st.session_state.timer_start_time = time.time() # Reset timer for test
-        st.session_state.test_answers = {} # Clear previous test answers
-        st.rerun()
-
+# ——— 5) Phase: Reading ———
+elif st.session_state.phase == "reading":
+    elapsed = time.time() - st.session_state.start_time
+    st.write(f"⏱️ Reading time: {int(60-elapsed)}s left")
     cols = st.columns(2)
-    for i, word_data in enumerate(st.session_state.current_word_set):
-        col_index = i % 2
-        with cols[col_index]:
-            st.subheader(f"{word_data['English Word']}")
-            st.write(f"🇵🇱 {word_data['Polish Translation']}")
-            st.caption(f"📖 Example: {word_data['Example Sentence']}")
-            st.markdown("---")
-    st.button("Refresh Timer (Dev)", on_click=lambda: st.rerun()) # For development
-
-# --- Test Stage ---
-elif st.session_state.stage == "test":
-    st.header(f"✏️ Round {st.session_state.round_number}: Test your knowledge!")
-    st.info("Match the Polish word with its English translation. You have 1 minute.")
-
-    time_elapsed = time.time() - st.session_state.timer_start_time
-    time_remaining = max(0, 60 - int(time_elapsed))
-    timer_placeholder = st.empty()
-    timer_placeholder.progress(time_remaining / 60)
-    timer_placeholder.write(f"Time remaining: {time_remaining} seconds")
-
-    if time_remaining <= 0:
-        st.session_state.stage = "results"
-        st.rerun()
-
-    # Prepare test items: shuffle Polish words and English options
-    polish_words_for_test = [word['Polish Translation'] for word in st.session_state.current_word_set]
-    english_options = [word['English Word'] for word in st.session_state.current_word_set]
-    random.shuffle(polish_words_for_test) # Shuffle the order of questions
-
-    form = st.form(key="test_form")
-    student_answers_map = {}
-
-    for i, pl_word in enumerate(polish_words_for_test):
-        # Find the correct English word for this Polish word
-        correct_en_word = ""
-        for wd in st.session_state.current_word_set:
-            if wd['Polish Translation'] == pl_word:
-                correct_en_word = wd['English Word']
-                break
-
-        # Create options for the selectbox: the correct answer + some distractors
-        # For simplicity, we'll use all English words from the current set as options
-        # In a more robust version, ensure distractors are different and meaningful
-        options_for_select = english_options[:] # Copy list
-        random.shuffle(options_for_select) # Shuffle options for each question
-
-        selected_en_word = form.selectbox(
-            f"**{i+1}. {pl_word}** is:",
-            options=options_for_select,
-            key=f"test_q_{i}",
-            index=None # No default selection
-        )
-        student_answers_map[pl_word] = {
-            "selected": selected_en_word,
-            "correct": correct_en_word
-        }
-
-    submit_button = form.form_submit_button("Submit Answers")
-
-    if submit_button:
-        st.session_state.test_answers = student_answers_map
-        st.session_state.stage = "results"
-        st.rerun()
-    st.button("Refresh Test Timer (Dev)", on_click=lambda: st.rerun()) # For development
-
-# --- Results Stage ---
-elif st.session_state.stage == "results":
-    st.header(f"📊 Round {st.session_state.round_number}: Results!")
-    round_score = 0
-    if not st.session_state.test_answers:
-        st.warning("No answers submitted for the test.")
+    for i, row in st.session_state.current_set.iterrows():
+        cols[i % 2].markdown(f"**{row.english}** — {row.polish}")
+    st.progress(elapsed/60)
+    if elapsed >= 60:
+        st.session_state.phase = "quiz"
+        st.experimental_rerun()
     else:
-        for pl_word, answers in st.session_state.test_answers.items():
-            selected = answers['selected']
-            correct = answers['correct']
-            if selected == correct:
-                st.success(f"**{pl_word}**: Your answer '{selected}' was CORRECT! 🎉")
-                round_score += 1
-            else:
-                st.error(f"**{pl_word}**: Your answer '{selected}' was INCORRECT. Correct was: '{correct}' 🙁")
-        st.session_state.score += round_score
-        st.subheader(f"You scored {round_score} out of {len(st.session_state.current_word_set)} in this round.")
+        st.experimental_rerun()
 
-    st.metric(label="Total Score", value=st.session_state.score)
+# ——— 6) Phase: Quiz ———
+elif st.session_state.phase == "quiz":
+    st.write("Match each **Polish** word to its **English** buddy.")
+    answers = {}
+    options = list(st.session_state.current_set.polish)
+    for idx, eng in enumerate(st.session_state.current_set.english):
+        answers[idx] = st.selectbox(f"{eng} →", [""] + options, key=f"q{idx}")
+    if st.button("Submit answers"):
+        correct = 0
+        for idx, choice in answers.items():
+            if choice == st.session_state.current_set.loc[idx, "polish"]:
+                correct += 1
+        st.session_state.score += correct
+        # log progress
+        pd.DataFrame({
+            "timestamp": [pd.Timestamp.now()],
+            "set":       [st.session_state.set_idx],
+            "correct":   [correct]
+        }).to_sql("progress", engine, if_exists="append", index=False)
+        st.session_state.phase = "review"
+        st.session_state.correct = correct
+        st.experimental_rerun()
 
-    if st.button("Next Set of Words ➡️"):
-        st.session_state.round_number += 1
-        st.session_state.stage = "learning"
-        st.session_state.current_word_set = get_new_word_set(st.session_state.all_words)
-        st.session_state.timer_start_time = time.time()
-        st.rerun()
-    if st.button("Restart Game 🔄"):
-        # Reset relevant session state variables
-        st.session_state.stage = "welcome"
-        st.session_state.score = 0
-        st.session_state.round_number = 0
-        st.session_state.seen_words_indices = set()
-        st.rerun()
-
-else:
-    st.error("Unknown application stage.")
-    if st.button("Reset to Welcome"):
-        st.session_state.stage = "welcome"
-        st.rerun()
+# ——— 7) Phase: Review & Next ———
+elif st.session_state.phase == "review":
+    st.write(f"✅ You got **{st.session_state.correct}/10** this round.")
+    st.write(f"🏆 Total score: **{st.session_state.score}**")
+    if st.button("Next 10 words"):
+        st.session_state.set_idx   += 1
+        st.session_state.current_set = pick_next_set()
+        st.session_state.phase     = "reading"
+        st.session_state.start_time = time.time()
+        st.experimental_rerun()
