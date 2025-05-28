@@ -4,6 +4,8 @@ import random
 import time
 import re # For highlighting words in sentences
 
+st.set_page_config(layout="centered") # MOVED TO THE TOP!
+
 # --- Helper Functions ---
 @st.cache_data # Cache the data loading
 def load_words():
