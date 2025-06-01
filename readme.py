@@ -239,11 +239,14 @@ elif st.session_state.stage == "learning_individual":
         else:
             time.sleep(1); st.rerun()
 
+# ... (Keep all your existing code: imports, helper functions, other stages) ...
+
+# --- Test Stage ---
 elif st.session_state.stage == "test":
     st.header(f"✏️ Round {st.session_state.round_number}: Test your knowledge!")
     quiz_dir = st.session_state.get("quiz_direction", "Polish to English")
     st.info(f"Translate from {quiz_dir.split(' ')[0]} to {quiz_dir.split(' ')[2]}. You have 2 minutes.")
-    
+
     time_elapsed_test = time.time() - st.session_state.timer_start_time
     time_remaining_test = max(0, 120 - int(time_elapsed_test))
     st.empty().progress(time_remaining_test / 120)
@@ -257,54 +260,90 @@ elif st.session_state.stage == "test":
     question_lang_key = 'Polish Translation' if quiz_dir == "Polish to English" else 'English Word'
     answer_lang_key = 'English Word' if quiz_dir == "Polish to English" else 'Polish Translation'
 
-    with st.form(key=f"test_form_r{st.session_state.round_number}"):
-        temp_answers = {}
+    # Generate questions and options ONCE per test round for stability
+    test_questions_key = f"test_questions_round_{st.session_state.round_number}_{quiz_dir}"
+    if test_questions_key not in st.session_state:
+        st.session_state[test_questions_key] = []
         for i, word_data in enumerate(st.session_state.current_word_set):
             question_word = word_data.get(question_lang_key, "N/A Question")
             correct_answer = word_data.get(answer_lang_key, "N/A Answer")
-            
-            options = {correct_answer}
+
+            options = {correct_answer} # Use a set for uniqueness
             all_possible_answers = [w.get(answer_lang_key, "") for w in st.session_state.all_words_loaded]
             distractor_pool = [ans for ans in all_possible_answers if ans and ans != correct_answer]
             
-            while len(options) < 5 and distractor_pool:
-                distractor = random.choice(distractor_pool)
-                options.add(distractor)
-                distractor_pool.remove(distractor)
+            # Ensure enough unique distractors for 4 slots
+            chosen_distractors = set()
+            if distractor_pool: # Only try to sample if pool is not empty
+                while len(chosen_distractors) < 4 and distractor_pool:
+                    distractor = random.choice(distractor_pool)
+                    chosen_distractors.add(distractor)
+                    distractor_pool.remove(distractor) # Ensure unique distractors picked from pool
+
+            options.update(chosen_distractors) # Add chosen distractors to options set
             
             final_options_list = list(options)
-            while len(final_options_list) < 5: # Pad if not enough unique options
-                 padding_option = f"Option {len(final_options_list) + random.randint(100,200)}" # Make padding more unique
-                 if padding_option not in final_options_list:
+            # Pad if not enough unique options were found (less than 5)
+            while len(final_options_list) < 5:
+                 padding_option = f"PadOpt{len(final_options_list)}_{random.randint(100,200)}"
+                 if padding_option not in final_options_list: # Ensure padding is unique
                     final_options_list.append(padding_option)
-                 else: # Failsafe if somehow still duplicate
-                    final_options_list.append(f"AltOpt {random.randint(201,300)}")
+                 else: # Failsafe if somehow still duplicate for padding
+                    final_options_list.append(f"AltPad{random.randint(201,300)}")
 
 
-            if correct_answer not in final_options_list: # Ensure correct answer is present
-                if len(final_options_list) >= 5: final_options_list[random.randint(0,4)] = correct_answer
-                else: final_options_list.append(correct_answer)
-            
+            # Ensure correct answer is definitely in the final list if it was somehow removed or not enough options
+            if correct_answer not in final_options_list:
+                if len(final_options_list) >= 5:
+                    final_options_list[random.randint(0, 4)] = correct_answer # Replace a random one
+                else:
+                    final_options_list.append(correct_answer) # Add if list is short
+
+            # Ensure exactly 5 options, trimming if too many, padding if too few (though padding above should handle it)
+            final_options_list = final_options_list[:5]
+            while len(final_options_list) < 5: # Final padding if absolutely necessary
+                final_options_list.append(f"FinalPad{len(final_options_list)}")
+
             random.shuffle(final_options_list)
             
-            selected_option = st.radio(
-                f"**{i+1}. {question_word}** is:",
-                options=final_options_list[:5],
-                key=f"q_r{st.session_state.round_number}_{i}_{quiz_dir.replace(' ','_')}", # More unique key
-                index=None
-            )
-            temp_answers[question_word] = {"selected": selected_option if selected_option else "Not Answered", "correct": correct_answer}
+            st.session_state[test_questions_key].append({
+                "question_word": question_word,
+                "correct_answer": correct_answer,
+                "options": final_options_list,
+                "form_key": f"q_r{st.session_state.round_number}_{i}_{quiz_dir.replace(' ','_')}" # Key for st.radio
+            })
+
+    with st.form(key=f"test_form_r{st.session_state.round_number}_{quiz_dir}"): # Make form key unique per round & direction
+        temp_answers = {}
+        if test_questions_key in st.session_state:
+            for i, q_data in enumerate(st.session_state[test_questions_key]):
+                selected_option = st.radio(
+                    f"**{i+1}. {q_data['question_word']}** is:",
+                    options=q_data['options'], # Use stored, stable options
+                    key=q_data['form_key'],    # Use stored, stable key
+                    index=None
+                )
+                temp_answers[q_data['question_word']] = { # Store against the actual question word
+                    "selected": selected_option if selected_option else "Not Answered",
+                    "correct": q_data['correct_answer']
+                }
         
         if st.form_submit_button("✅ Submit Answers"):
             st.session_state.test_answers = temp_answers
             st.session_state.submitted_test = True
             st.session_state.stage = "results"
+            # Clear the stored questions for this round to force regeneration next time
+            # if st.session_state.stage changes to results (or do it in results stage before next round button)
+            # For now, let's clear it here to be safe for a re-attempt of the same round if that was possible.
+            # However, typical flow moves to next round.
+            # del st.session_state[test_questions_key] # Optional: uncomment if issues with re-entering same round
             st.rerun()
 
     if time_remaining_test > 0 and 'submitted_test' not in st.session_state:
         time.sleep(1); st.rerun()
-    elif 'submitted_test' in st.session_state and st.session_state.stage != "results":
-        del st.session_state.submitted_test
+    # No need to `del st.session_state.submitted_test` here anymore, handle it in results/next round logic
+
+# ... (The rest of your app code: Results Stage, Welcome Stage, etc. will use this fixed Test Stage) ...
 
 elif st.session_state.stage == "results":
     st.header(f"📊 Round {st.session_state.round_number}: Results!")
