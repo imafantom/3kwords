@@ -1,5 +1,5 @@
 import streamlit as st
-import pandas as pd
+import pandas as pd # Pandas is good for potentially loading from CSV in the future
 import random
 import time
 import re # For highlighting words in sentences
@@ -10,51 +10,116 @@ st.set_page_config(layout="centered", page_title="Vocabulary Practice")
 # --- Helper Functions ---
 @st.cache_data # Cache the data loading
 def load_words():
-    # Using the substantial placeholder from previous interactions.
-    # User should continue to populate this list from their PDF.
+    # EXTENSIVELY EXPANDED WORD LIST FROM YOUR PDF.
+    # Please continue to add words from your PDF to complete this list
+    # (aiming for 50 per letter, or your full 3000-word target).
     word_data_list = [
-        {'English Word': 'a', 'Polish Translation': 'a', 'Example Sentence': 'I need a pen.'},
-        {'English Word': 'abandon', 'Polish Translation': 'porzucić', 'Example Sentence': 'They had to abandon their car in the snow.'},
-        {'English Word': 'ability', 'Polish Translation': 'zdolność', 'Example Sentence': 'She has the ability to learn new languages quickly.'},
-        {'English Word': 'able', 'Polish Translation': 'zdolny', 'Example Sentence': 'He is able to lift heavy boxes.'},
-        {'English Word': 'abortion', 'Polish Translation': 'aborcja', 'Example Sentence': 'The debate around abortion is highly controversial.'},
-        {'English Word': 'about', 'Polish Translation': 'o, około', 'Example Sentence': "What are you talking about? It's about five o'clock."},
-        {'English Word': 'above', 'Polish Translation': 'powyżej', 'Example Sentence': 'The bird flew above the trees.'},
-        {'English Word': 'abroad', 'Polish Translation': 'za granicą', 'Example Sentence': 'He decided to study abroad for a year.'},
-        {'English Word': 'absence', 'Polish Translation': 'nieobecność', 'Example Sentence': 'His absence from the meeting was noted.'},
-        {'English Word': 'absolute', 'Polish Translation': 'absolutny', 'Example Sentence': "It's an absolute necessity."},
-        {'English Word': 'absolutely', 'Polish Translation': 'absolutnie', 'Example Sentence': 'Are you sure? Absolutely!'},
-        {'English Word': 'absorb', 'Polish Translation': 'wchłaniać', 'Example Sentence': 'The sponge can absorb a lot of water.'},
-        {'English Word': 'abuse', 'Polish Translation': 'nadużycie', 'Example Sentence': 'Child abuse is a serious crime.'},
-        {'English Word': 'academic', 'Polish Translation': 'akademicki', 'Example Sentence': 'She excels in academic subjects.'},
-        {'English Word': 'accept', 'Polish Translation': 'zaakceptować', 'Example Sentence': 'I accept your offer.'},
-        {'English Word': 'access', 'Polish Translation': 'dostęp', 'Example Sentence': 'Do you have access to the internet here?'},
-        {'English Word': 'accident', 'Polish Translation': 'wypadek', 'Example Sentence': 'He was involved in a car accident.'},
-        {'English Word': 'accompany', 'Polish Translation': 'towarzyszyć', 'Example Sentence': 'I will accompany you to the station.'},
-        {'English Word': 'accomplish', 'Polish Translation': 'osiągnąć', 'Example Sentence': 'We need to accomplish this task by Friday.'},
-        {'English Word': 'according', 'Polish Translation': 'według', 'Example Sentence': "According to the map, we're almost there."},
-        {'English Word': 'account', 'Polish Translation': 'konto', 'Example Sentence': 'Please deposit the money into my bank account.'},
-        {'English Word': 'accurate', 'Polish Translation': 'dokładny', 'Example Sentence': 'We need accurate data for this report.'},
-        # ... (Continue adding ALL words from your PDF here)
-        # For brevity, I am keeping the example list short for this code block.
-        # Ensure you have at least 5-10 unique words for the distractor logic to work without issues.
-        {'English Word': 'dad', 'Polish Translation': 'tata', 'Example Sentence': 'My dad is picking me up from school.'},
-        {'English Word': 'daily', 'Polish Translation': 'codzienny', 'Example Sentence': 'I read the daily newspaper.'},
-        {'English Word': 'damage', 'Polish Translation': 'uszkodzenie, uszkodzić', 'Example Sentence': "The storm caused a lot of damage. / Don't damage the equipment."},
-        {'English Word': 'dance', 'Polish Translation': 'taniec, tańczyć', 'Example Sentence': 'She loves to dance.'},
-        {'English Word': 'danger', 'Polish Translation': 'niebezpieczeństwo', 'Example Sentence': 'There is danger in climbing without a rope.'},
-        {'English Word': 'each', 'Polish Translation': 'każdy', 'Example Sentence': 'Each student received a book.'},
-        {'English Word': 'eager', 'Polish Translation': 'chętny, żądny', 'Example Sentence': 'He was eager to learn new things.'},
-        {'English Word': 'ear', 'Polish Translation': 'ucho', 'Example Sentence': 'My ear hurts.'},
-        {'English Word': 'early', 'Polish Translation': 'wcześnie', 'Example Sentence': 'She wakes up early every day.'},
-        {'English Word': 'earn', 'Polish Translation': 'zarabiać', 'Example Sentence': 'How much do you earn per month?'},
+        # Words starting with A (from your PDF)
+        {'English Word': 'a', 'Polish Translation': 'a', 'Example Sentence': 'I need a pen.'}, # [cite: 2]
+        {'English Word': 'abandon', 'Polish Translation': 'porzucić', 'Example Sentence': 'They had to abandon their car in the snow.'}, # [cite: 2]
+        {'English Word': 'ability', 'Polish Translation': 'zdolność', 'Example Sentence': 'She has the ability to learn new languages quickly.'}, # [cite: 2]
+        {'English Word': 'able', 'Polish Translation': 'zdolny', 'Example Sentence': 'He is able to lift heavy boxes.'}, # [cite: 2]
+        {'English Word': 'abortion', 'Polish Translation': 'aborcja', 'Example Sentence': 'The debate around abortion is highly controversial.'}, # [cite: 2]
+        {'English Word': 'about', 'Polish Translation': 'o, około', 'Example Sentence': "What are you talking about? It's about five o'clock."}, # [cite: 2]
+        {'English Word': 'above', 'Polish Translation': 'powyżej', 'Example Sentence': 'The bird flew above the trees.'}, # [cite: 2]
+        {'English Word': 'abroad', 'Polish Translation': 'za granicą', 'Example Sentence': 'He decided to study abroad for a year.'}, # [cite: 2]
+        {'English Word': 'absence', 'Polish Translation': 'nieobecność', 'Example Sentence': 'His absence from the meeting was noted.'}, # [cite: 3]
+        {'English Word': 'absolute', 'Polish Translation': 'absolutny', 'Example Sentence': "It's an absolute necessity."}, # [cite: 3]
+        {'English Word': 'absolutely', 'Polish Translation': 'absolutnie', 'Example Sentence': 'Are you sure? Absolutely!'}, # [cite: 3]
+        {'English Word': 'absorb', 'Polish Translation': 'wchłaniać', 'Example Sentence': 'The sponge can absorb a lot of water.'}, # [cite: 3]
+        {'English Word': 'abuse', 'Polish Translation': 'nadużycie', 'Example Sentence': 'Child abuse is a serious crime.'}, # [cite: 3]
+        {'English Word': 'academic', 'Polish Translation': 'akademicki', 'Example Sentence': 'She excels in academic subjects.'}, # [cite: 3]
+        {'English Word': 'accept', 'Polish Translation': 'zaakceptować', 'Example Sentence': 'I accept your offer.'}, # [cite: 3]
+        {'English Word': 'access', 'Polish Translation': 'dostęp', 'Example Sentence': 'Do you have access to the internet here?'}, # [cite: 3]
+        {'English Word': 'accident', 'Polish Translation': 'wypadek', 'Example Sentence': 'He was involved in a car accident.'}, # [cite: 3]
+        {'English Word': 'accompany', 'Polish Translation': 'towarzyszyć', 'Example Sentence': 'I will accompany you to the station.'}, # [cite: 3]
+        {'English Word': 'accomplish', 'Polish Translation': 'osiągnąć', 'Example Sentence': 'We need to accomplish this task by Friday.'}, # [cite: 3]
+        {'English Word': 'according', 'Polish Translation': 'według', 'Example Sentence': "According to the map, we're almost there."}, # [cite: 3]
+        {'English Word': 'account', 'Polish Translation': 'konto', 'Example Sentence': 'Please deposit the money into my bank account.'}, # [cite: 4]
+        {'English Word': 'accurate', 'Polish Translation': 'dokładny', 'Example Sentence': 'We need accurate data for this report.'}, # [cite: 4]
+        {'English Word': 'accuse', 'Polish Translation': 'oskarżyć', 'Example Sentence': 'They accused him of lying.'}, # [cite: 4]
+        {'English Word': 'achieve', 'Polish Translation': 'osiągnąć', 'Example Sentence': 'She worked hard to achieve her goals.'}, # [cite: 4]
+        {'English Word': 'achievement', 'Polish Translation': 'osiągnięcie', 'Example Sentence': 'Winning the award was a great achievement.'}, # [cite: 4]
+        {'English Word': 'acid', 'Polish Translation': 'kwas', 'Example Sentence': 'Lemon juice is acidic.'}, # [cite: 4]
+        {'English Word': 'acknowledge', 'Polish Translation': 'potwierdzić, uznać', 'Example Sentence': 'Please acknowledge receipt of this email.'}, # [cite: 4]
+        {'English Word': 'acquire', 'Polish Translation': 'nabyć', 'Example Sentence': 'The company plans to acquire a smaller business.'}, # [cite: 4]
+        {'English Word': 'across', 'Polish Translation': 'przez', 'Example Sentence': 'He walked across the street.'}, # [cite: 4]
+        {'English Word': 'act', 'Polish Translation': 'czyn, działać, ustawa', 'Example Sentence': 'It was an act of kindness. / You need to act quickly. / The new Act comes into force next month.'}, # [cite: 4]
+        {'English Word': 'action', 'Polish Translation': 'działanie', 'Example Sentence': 'His words led to immediate action.'}, # [cite: 4]
+        {'English Word': 'active', 'Polish Translation': 'aktywny', 'Example Sentence': 'She leads a very active lifestyle.'}, # [cite: 5]
+        {'English Word': 'activist', 'Polish Translation': 'aktywista', 'Example Sentence': 'Environmental activists protested the new factory.'}, # [cite: 5]
+        {'English Word': 'activity', 'Polish Translation': 'aktywność', 'Example Sentence': 'There are many outdoor activities available.'}, # [cite: 5]
+        {'English Word': 'actor', 'Polish Translation': 'aktor', 'Example Sentence': 'He is a famous Hollywood actor.'}, # [cite: 5]
+        {'English Word': 'actress', 'Polish Translation': 'aktorka', 'Example Sentence': 'She is a talented actress.'}, # [cite: 5]
+        {'English Word': 'actual', 'Polish Translation': 'rzeczywisty', 'Example Sentence': 'What was the actual cost of the trip?'}, # [cite: 5]
+        {'English Word': 'actually', 'Polish Translation': 'właściwie, faktycznie', 'Example Sentence': 'I actually thought it would be harder.'}, # [cite: 5]
+        {'English Word': 'ad', 'Polish Translation': 'reklama', 'Example Sentence': 'I saw a funny ad on TV.'}, # [cite: 5]
+        {'English Word': 'adapt', 'Polish Translation': 'przystosować się', 'Example Sentence': 'Animals adapt to their environment.'}, # [cite: 5]
+        {'English Word': 'add', 'Polish Translation': 'dodać', 'Example Sentence': 'Please add sugar to my coffee.'}, # [cite: 5]
+        {'English Word': 'addition', 'Polish Translation': 'dodatek', 'Example Sentence': 'In addition to that, we need more staff.'}, # [cite: 5]
+        {'English Word': 'additional', 'Polish Translation': 'dodatkowy', 'Example Sentence': 'Do you require any additional information?'}, # [cite: 5]
+        {'English Word': 'address', 'Polish Translation': 'adres, zaadresować', 'Example Sentence': "What's your home address? / He addressed the audience."}, # [cite: 6]
+        {'English Word': 'adequate', 'Polish Translation': 'odpowiedni', 'Example Sentence': 'The facilities are adequate for our needs.'}, # [cite: 6]
+        {'English Word': 'adjust', 'Polish Translation': 'dostosować', 'Example Sentence': 'You can adjust the volume with this knob.'}, # [cite: 6]
+        {'English Word': 'adjustment', 'Polish Translation': 'dostosowanie', 'Example Sentence': 'We need to make some adjustments to the schedule.'}, # [cite: 6]
+        {'English Word': 'administration', 'Polish Translation': 'administracja', 'Example Sentence': 'The university administration handles student affairs.'}, # [cite: 6]
+        {'English Word': 'administrator', 'Polish Translation': 'administrator', 'Example Sentence': 'The system administrator manages the network.'}, # [cite: 6]
+        {'English Word': 'admire', 'Polish Translation': 'podziwiać', 'Example Sentence': 'I admire her courage.'}, # [cite: 6]
+        # ... (I'll add up to ~50 for 'A' if present in the first few pages of the PDF, then move to 'B')
+
+        # Words starting with B (from your PDF)
+        {'English Word': 'baby', 'Polish Translation': 'dziecko, niemowlę', 'Example Sentence': 'The baby is sleeping soundly.'}, # [cite: 23]
+        {'English Word': 'back', 'Polish Translation': 'plecy, tył, z powrotem', 'Example Sentence': "My back hurts. / The house has a garden at the back. / I'll be back soon."}, # [cite: 23]
+        {'English Word': 'background', 'Polish Translation': 'tło', 'Example Sentence': 'The painting has a dark background.'}, # [cite: 23]
+        {'English Word': 'bad', 'Polish Translation': 'zły', 'Example Sentence': 'It was a bad day.'}, # [cite: 23]
+        {'English Word': 'badly', 'Polish Translation': 'źle', 'Example Sentence': 'He plays tennis badly.'}, # [cite: 23]
+        {'English Word': 'bag', 'Polish Translation': 'torba', 'Example Sentence': 'I packed my clothes in a bag.'}, # [cite: 23]
+        {'English Word': 'bake', 'Polish Translation': 'piec', 'Example Sentence': 'She loves to bake cakes.'}, # [cite: 24]
+        {'English Word': 'balance', 'Polish Translation': 'równowaga, saldo', 'Example Sentence': 'He lost his balance and fell. / Check your bank balance.'}, # [cite: 24]
+        {'English Word': 'ball', 'Polish Translation': 'piłka', 'Example Sentence': "Let's play with a ball."}, # [cite: 24]
+        {'English Word': 'ban', 'Polish Translation': 'zakaz, zakazać', 'Example Sentence': "There's a ban on smoking indoors. / They plan to ban plastic bags."}, # [cite: 24]
+        {'English Word': 'band', 'Polish Translation': 'zespół, zespół', 'Example Sentence': 'The band played great music. / She wears a wedding band.'}, # [cite: 24]
+        {'English Word': 'bank', 'Polish Translation': 'bank, brzeg (rzeki)', 'Example Sentence': 'I need to go to the bank. / They sat on the river bank.'}, # [cite: 24]
+        {'English Word': 'bar', 'Polish Translation': 'bar, drążek, sztabka', 'Example Sentence': "Let's meet at the bar. / He did pull-ups on the bar. / She bought a bar of chocolate."}, # [cite: 24]
+        {'English Word': 'barely', 'Polish Translation': 'ledwo', 'Example Sentence': 'I could barely hear him.'}, # [cite: 24]
+        {'English Word': 'barrel', 'Polish Translation': 'beczka', 'Example Sentence': 'The wine is stored in wooden barrels.'}, # [cite: 24]
+        {'English Word': 'barrier', 'Polish Translation': 'bariera', 'Example Sentence': 'Language can be a barrier to communication.'}, # [cite: 24]
+        {'English Word': 'base', 'Polish Translation': 'baza, podstawa, opierać się', 'Example Sentence': 'The military has a base here. / This is the base of the argument. / The film is based on a true story.'}, # [cite: 24]
+        {'English Word': 'baseball', 'Polish Translation': 'baseball', 'Example Sentence': 'Baseball is a popular sport in the US.'}, # [cite: 25]
+        {'English Word': 'basic', 'Polish Translation': 'podstawowy', 'Example Sentence': 'He has a basic understanding of computers.'}, # [cite: 25]
+        {'English Word': 'basically', 'Polish Translation': 'w zasadzie', 'Example Sentence': 'Basically, we need more money.'}, # [cite: 25]
+        {'English Word': 'basis', 'Polish Translation': 'podstawa', 'Example Sentence': 'We made the decision on the basis of new information.'}, # [cite: 25]
+        {'English Word': 'basket', 'Polish Translation': 'koszyk', 'Example Sentence': 'She carried a basket of fruit.'}, # [cite: 25]
+        {'English Word': 'basketball', 'Polish Translation': 'koszykówka', 'Example Sentence': 'He plays basketball every weekend.'}, # [cite: 25]
+        {'English Word': 'bathroom', 'Polish Translation': 'łazienka', 'Example Sentence': "Where's the bathroom?"}, # [cite: 25]
+        {'English Word': 'battery', 'Polish Translation': 'bateria', 'Example Sentence': 'My phone battery is low.'}, # [cite: 25]
+        {'English Word': 'battle', 'Polish Translation': 'bitwa', 'Example Sentence': 'The battle lasted for hours.'}, # [cite: 25]
+        {'English Word': 'be', 'Polish Translation': 'być', 'Example Sentence': 'I want to be happy.'}, # [cite: 25]
+        {'English Word': 'beach', 'Polish Translation': 'plaża', 'Example Sentence': "Let's go to the beach."}, # [cite: 25]
+        {'English Word': 'bean', 'Polish Translation': 'fasola', 'Example Sentence': 'I like green beans.'}, # [cite: 25]
+        {'English Word': 'bear', 'Polish Translation': 'niedźwiedź, znosić', 'Example Sentence': "The bear hibernates in winter. / I can't bear the pain."}, # [cite: 26]
+        {'English Word': 'beat', 'Polish Translation': 'bić, pokonać', 'Example Sentence': 'My heart beats fast. / He can beat anyone at chess.'}, # [cite: 26]
+        # ... (Continue for B, then C, etc., from your PDF)
+
+        # Example of a few 'C' words
+        {'English Word': 'cabin', 'Polish Translation': 'kabina, domek', 'Example Sentence': 'We rented a small cabin in the woods.'}, # [cite: 37]
+        {'English Word': 'cabinet', 'Polish Translation': 'szafka, gabinet (rządowy)', 'Example Sentence': 'She keeps her spices in the kitchen cabinet. / The President met with his cabinet members.'}, # [cite: 37]
+        {'English Word': 'cable', 'Polish Translation': 'kabel', 'Example Sentence': "The TV isn't working, check the cable."}, # [cite: 38]
+        {'English Word': 'cake', 'Polish Translation': 'ciasto', 'Example Sentence': 'She baked a delicious chocolate cake.'}, # [cite: 38]
+        {'English Word': 'calculate', 'Polish Translation': 'obliczyć', 'Example Sentence': 'Can you calculate the total cost?'}, # [cite: 38]
+        {'English Word': 'call', 'Polish Translation': 'wołać, dzwonić, połączenie', 'Example Sentence': 'Call me when you get home. / I received a call from my boss.'}, # [cite: 38]
+
+        # Placeholder for more words
+        # You need to continue this data entry from your PDF to have a rich vocabulary set.
+        # The more words you add, the better the distractor generation and overall app experience will be.
     ]
-    if len(word_data_list) < 5: # Need at least 5 for distractors + correct answer.
-        st.warning("Word list is very small. Multiple choice questions might have repeated options or fewer than 5 options.")
+    if len(word_data_list) < 20: # Increased minimum for better distractor pool.
+        st.warning("Word list is very small. Multiple choice questions might have repeated options or fewer than 5 options. Please add more words.")
     return word_data_list
 
 ALL_WORDS = load_words()
 
+# (The rest of the helper functions: get_new_word_set, highlight_word_in_sentence, motivational_quotes remain the same)
 def get_new_word_set(words_list, num_words=10, seen_indices=None):
     if seen_indices is None: seen_indices = set()
     available_indices = [i for i, _ in enumerate(words_list) if i not in seen_indices]
@@ -64,8 +129,13 @@ def get_new_word_set(words_list, num_words=10, seen_indices=None):
             seen_indices.clear()
             available_indices = list(range(len(words_list)))
         elif not words_list: return []
-    if not available_indices: return []
-    chosen_indices = random.sample(available_indices, min(num_words, len(available_indices)))
+    if not available_indices: return [] # Handles case where words_list might be empty after all checks
+    
+    # Ensure we don't try to sample more words than available
+    actual_num_words_to_sample = min(num_words, len(available_indices))
+    if actual_num_words_to_sample == 0: return [] # Cannot sample 0 words
+
+    chosen_indices = random.sample(available_indices, actual_num_words_to_sample)
     new_set = [words_list[i] for i in chosen_indices]
     for i in chosen_indices: seen_indices.add(i)
     return new_set
@@ -81,6 +151,7 @@ motivational_quotes = [
     "Awesome! Practice makes perfect.", "Fantastic! Keep it up!"
 ]
 
+
 st.markdown("""
     <style>
         body, .stApp, .stButton>button, .stSelectbox div[data-baseweb='select'] > div, 
@@ -91,19 +162,18 @@ st.markdown("""
         .orange-text { color: orange; font-weight: bold; }
         .timer-text { font-size: 20px !important; font-weight: bold; color: #1E90FF; text-align: center; margin-bottom: 10px; }
         .stProgress > div > div > div > div { background-color: #1E90FF !important; }
-        .example-sentence { font-size: 1.1em !important; font-style: italic; color: #555; }
-        /* Ensure radio buttons are styled well */
-        .stRadio > label > div:first-child { /* Target the radio button circle/box */
-            margin-right: 8px;
+        .example-sentence { font-size: 1.1em !important; font-style: italic; color: #555; margin-top: 5px; }
+        .stRadio > label > div:first-child { margin-right: 8px; }
+        .stRadio { /* Add some spacing between radio options */
+            padding-bottom: 5px;
         }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🇬🇧 English Vocabulary Practice 🇵🇱")
 
-# Initialize session state variables
 default_session_state = {
-    "stage": "welcome", "all_words": ALL_WORDS, "score": 0, "current_word_set": [],
+    "stage": "welcome", "all_words_loaded": ALL_WORDS, "score": 0, "current_word_set": [],
     "test_answers": {}, "timer_start_time": 0, "round_number": 0, "seen_words_indices": set(),
     "current_learning_word_index": 0, "learning_word_start_time": 0,
     "quiz_direction": "Polish to English", "overall_correct_streak": 0
@@ -111,25 +181,30 @@ default_session_state = {
 for key, value in default_session_state.items():
     if key not in st.session_state:
         st.session_state[key] = value
+if 'all_words_loaded' not in st.session_state or not st.session_state.all_words_loaded: # Ensure words are loaded
+    st.session_state.all_words_loaded = load_words()
+
 
 if st.session_state.stage == "welcome":
     st.header("Welcome to the Vocabulary Trainer!")
+    # Ensure quiz_direction is initialized before st.radio uses it for index
+    current_quiz_direction_index = ("Polish to English", "English to Polish").index(st.session_state.get("quiz_direction", "Polish to English"))
     st.session_state.quiz_direction = st.radio(
         "Select Quiz Direction:",
         ("Polish to English", "English to Polish"),
-        index=("Polish to English", "English to Polish").index(st.session_state.quiz_direction),
+        index=current_quiz_direction_index, # Use .get() for safety
         key="quiz_direction_selector"
     )
     if st.button("🚀 Start Learning"):
-        if not ALL_WORDS:
-            st.error("Word list is empty. Please populate the `load_words()` function.")
+        if not st.session_state.all_words_loaded:
+            st.error("Word list is empty or could not be loaded. Please check the `load_words()` function and data source.")
         else:
             st.session_state.round_number += 1
             st.session_state.stage = "learning_individual"
-            st.session_state.current_word_set = get_new_word_set(st.session_state.all_words, 10, st.session_state.seen_words_indices)
+            st.session_state.current_word_set = get_new_word_set(st.session_state.all_words_loaded, 10, st.session_state.seen_words_indices)
             if not st.session_state.current_word_set:
-                st.error("Could not load words. Ensure the list is populated and has enough variety.")
-                st.session_state.stage = "welcome"
+                st.error("Could not load new words for the round. Please check if enough unique words are available or restart.")
+                st.session_state.stage = "welcome" # Go back if no words for round
             else:
                 st.session_state.current_learning_word_index = 0
                 st.session_state.learning_word_start_time = time.time()
@@ -146,9 +221,14 @@ elif st.session_state.stage == "learning_individual":
         time_elapsed_word = time.time() - st.session_state.learning_word_start_time
         time_remaining_word = max(0, 5 - int(time_elapsed_word))
         st.empty().markdown(f"<p class='timer-text'>Time for this word: {time_remaining_word}s</p>", unsafe_allow_html=True)
-        st.markdown(f"## <span class='orange-text'>{word_data['English Word']}</span>", unsafe_allow_html=True)
-        st.markdown(f"### 🇵🇱 {word_data['Polish Translation']}")
-        highlighted_sentence = highlight_word_in_sentence(word_data['Example Sentence'], word_data['English Word'])
+        
+        english_display = word_data.get('English Word', 'N/A')
+        polish_display = word_data.get('Polish Translation', 'N/A')
+        sentence_display = word_data.get('Example Sentence', 'No example available.')
+
+        st.markdown(f"## <span class='orange-text'>{english_display}</span>", unsafe_allow_html=True)
+        st.markdown(f"### 🇵🇱 {polish_display}")
+        highlighted_sentence = highlight_word_in_sentence(sentence_display, english_display)
         st.markdown(f"<p class='example-sentence'>📖 Example: {highlighted_sentence}</p>", unsafe_allow_html=True)
         st.markdown("---")
         if time_remaining_word <= 0:
@@ -161,7 +241,9 @@ elif st.session_state.stage == "learning_individual":
 
 elif st.session_state.stage == "test":
     st.header(f"✏️ Round {st.session_state.round_number}: Test your knowledge!")
-    st.info(f"Translate from {st.session_state.quiz_direction.split(' ')[0]} to {st.session_state.quiz_direction.split(' ')[2]}. You have 2 minutes.")
+    quiz_dir = st.session_state.get("quiz_direction", "Polish to English")
+    st.info(f"Translate from {quiz_dir.split(' ')[0]} to {quiz_dir.split(' ')[2]}. You have 2 minutes.")
+    
     time_elapsed_test = time.time() - st.session_state.timer_start_time
     time_remaining_test = max(0, 120 - int(time_elapsed_test))
     st.empty().progress(time_remaining_test / 120)
@@ -172,51 +254,44 @@ elif st.session_state.stage == "test":
     if not st.session_state.current_word_set:
         st.error("No words for test."); st.session_state.stage = "welcome"; st.rerun()
 
-    question_lang_key = 'Polish Translation' if st.session_state.quiz_direction == "Polish to English" else 'English Word'
-    answer_lang_key = 'English Word' if st.session_state.quiz_direction == "Polish to English" else 'Polish Translation'
+    question_lang_key = 'Polish Translation' if quiz_dir == "Polish to English" else 'English Word'
+    answer_lang_key = 'English Word' if quiz_dir == "Polish to English" else 'Polish Translation'
 
     with st.form(key=f"test_form_r{st.session_state.round_number}"):
         temp_answers = {}
         for i, word_data in enumerate(st.session_state.current_word_set):
-            question_word = word_data[question_lang_key]
-            correct_answer = word_data[answer_lang_key]
+            question_word = word_data.get(question_lang_key, "N/A Question")
+            correct_answer = word_data.get(answer_lang_key, "N/A Answer")
             
-            options = {correct_answer} # Use a set to ensure uniqueness initially
+            options = {correct_answer}
+            all_possible_answers = [w.get(answer_lang_key, "") for w in st.session_state.all_words_loaded]
+            distractor_pool = [ans for ans in all_possible_answers if ans and ans != correct_answer]
             
-            # Generate distractors
-            distractor_pool = [w[answer_lang_key] for w in ALL_WORDS if w[answer_lang_key] != correct_answer and w[question_lang_key] != question_word]
-            
-            # Ensure enough unique distractors (need 4)
             while len(options) < 5 and distractor_pool:
                 distractor = random.choice(distractor_pool)
                 options.add(distractor)
-                distractor_pool.remove(distractor) # Avoid reusing the same distractor for this question
+                distractor_pool.remove(distractor)
             
-            # If still not enough options (e.g. ALL_WORDS is too small), pad with placeholders or fewer options
             final_options_list = list(options)
-            while len(final_options_list) < 5 and len(final_options_list) < len(ALL_WORDS): # Add more generic distractors if needed
-                 # Try to pick any other word from ALL_WORDS not already in options
-                 potential_padding = [w[answer_lang_key] for w in ALL_WORDS if w[answer_lang_key] not in final_options_list]
-                 if potential_padding:
-                     final_options_list.append(random.choice(potential_padding))
-                 else: # Absolute fallback
-                     final_options_list.append(f"Option {len(final_options_list)+1}")
+            while len(final_options_list) < 5: # Pad if not enough unique options
+                 padding_option = f"Option {len(final_options_list) + random.randint(100,200)}" # Make padding more unique
+                 if padding_option not in final_options_list:
+                    final_options_list.append(padding_option)
+                 else: # Failsafe if somehow still duplicate
+                    final_options_list.append(f"AltOpt {random.randint(201,300)}")
 
 
-            random.shuffle(final_options_list)
-            
-            # Ensure correct answer is always in the options if it got shuffled out by unique constraint logic with small ALL_WORDS
-            if correct_answer not in final_options_list:
+            if correct_answer not in final_options_list: # Ensure correct answer is present
                 if len(final_options_list) >= 5: final_options_list[random.randint(0,4)] = correct_answer
                 else: final_options_list.append(correct_answer)
-                random.shuffle(final_options_list)
-
-
+            
+            random.shuffle(final_options_list)
+            
             selected_option = st.radio(
                 f"**{i+1}. {question_word}** is:",
-                options=final_options_list[:5], # Ensure only 5 options
-                key=f"q_r{st.session_state.round_number}_{i}",
-                index=None # No default selection
+                options=final_options_list[:5],
+                key=f"q_r{st.session_state.round_number}_{i}_{quiz_dir.replace(' ','_')}", # More unique key
+                index=None
             )
             temp_answers[question_word] = {"selected": selected_option if selected_option else "Not Answered", "correct": correct_answer}
         
@@ -234,30 +309,27 @@ elif st.session_state.stage == "test":
 elif st.session_state.stage == "results":
     st.header(f"📊 Round {st.session_state.round_number}: Results!")
     round_score = 0
-    current_round_all_correct = True
-
     if not st.session_state.get('test_answers'):
         st.warning("No answers processed.")
     else:
-        for question_word_key, data in st.session_state.test_answers.items(): # question_word_key is actually the question word string
+        for question_word, data in st.session_state.test_answers.items():
             selected = str(data.get('selected', "Not Answered"))
             correct = str(data.get('correct', "N/A"))
             
             if selected == correct:
-                st.markdown(f"✅ **{question_word_key}**: Your answer <span class='orange-text'>{selected}</span> was CORRECT! 🎉", unsafe_allow_html=True)
+                st.markdown(f"✅ **{question_word}**: Your answer <span class='orange-text'>{selected}</span> was CORRECT! 🎉", unsafe_allow_html=True)
                 round_score += 1
                 st.session_state.overall_correct_streak +=1
             else:
-                current_round_all_correct = False
-                st.session_state.overall_correct_streak = 0 # Reset streak on any incorrect answer
+                st.session_state.overall_correct_streak = 0
                 if selected == "Not Answered":
-                    st.markdown(f"ℹ️ **{question_word_key}**: Not answered. Correct was: <span class='orange-text'>{correct}</span>", unsafe_allow_html=True)
+                    st.markdown(f"ℹ️ **{question_word}**: Not answered. Correct was: <span class='orange-text'>{correct}</span>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"❌ **{question_word_key}**: Your answer <span class='orange-text'>{selected}</span> INCORRECT. Correct: <span class='orange-text'>{correct}</span> 🙁", unsafe_allow_html=True)
+                    st.markdown(f"❌ **{question_word}**: Your answer <span class='orange-text'>{selected}</span> INCORRECT. Correct: <span class='orange-text'>{correct}</span> 🙁", unsafe_allow_html=True)
         
         if st.session_state.current_word_set:
             st.subheader(f"You scored {round_score}/{len(st.session_state.current_word_set)} this round.")
-            round_scored_key = f"round_{st.session_state.round_number}_main_score" # More specific key
+            round_scored_key = f"round_{st.session_state.round_number}_main_score"
             if not st.session_state.get(round_scored_key, False):
                  st.session_state.score += round_score
                  st.session_state[round_scored_key] = True
@@ -270,7 +342,7 @@ elif st.session_state.stage == "results":
     with col1:
         if st.button("Next Set of Words ➡️", use_container_width=True):
             st.session_state.round_number += 1; st.session_state.stage = "learning_individual"
-            st.session_state.current_word_set = get_new_word_set(st.session_state.all_words, 10, st.session_state.seen_words_indices)
+            st.session_state.current_word_set = get_new_word_set(st.session_state.all_words_loaded, 10, st.session_state.seen_words_indices)
             if not st.session_state.current_word_set:
                 st.error("No new words."); st.session_state.stage = "welcome"
             else:
@@ -280,13 +352,18 @@ elif st.session_state.stage == "results":
             st.rerun()
     with col2:
         if st.button("Restart Game 🔄", use_container_width=True):
-            keys_to_del = [k for k in st.session_state.keys() if k != 'all_words' and k != 'quiz_direction'] # Keep quiz_direction
-            for key in keys_to_del: del st.session_state[key]
-            # Re-initialize
+            # Preserve quiz_direction and all_words_loaded, clear others
+            current_quiz_dir = st.session_state.get("quiz_direction", "Polish to English")
+            loaded_words = st.session_state.get("all_words_loaded", [])
+            
+            for key in list(st.session_state.keys()): del st.session_state[key] # Clear all
+            
+            # Re-initialize with preserved values
             for key, value in default_session_state.items():
-                if key != 'all_words' and key != 'quiz_direction': # quiz_direction is kept from user selection
-                     st.session_state[key] = value
-            st.session_state.all_words = ALL_WORDS # Ensure all_words is reset if it was changed
+                 st.session_state[key] = value # Reset to defaults
+            st.session_state.quiz_direction = current_quiz_dir # Restore preserved
+            st.session_state.all_words_loaded = loaded_words # Restore preserved
+
             st.rerun()
 else:
     st.error("Unknown stage. Resetting."); st.session_state.stage = "welcome"; st.rerun()
