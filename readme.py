@@ -392,23 +392,35 @@ elif st.session_state.stage == "results":
     st.info(f"✨ {random.choice(motivational_quotes)} ✨")
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("Next Set of Words ➡️", use_container_width=True, key=f"next_round_{st.session_state.round_number}"):
+       # ... (inside results stage, within the col1 for the button)
+        if st.button("Next Set of Words ➡️", use_container_width=True, key=f"next_round_btn_{st.session_state.round_number}"):
+            # Get quiz direction of the round just finished to clear its specific cache
+            quiz_dir_of_completed_round = st.session_state.get("quiz_direction", "Polish to English") # Assuming quiz_direction doesn't change mid-results
+            completed_round_cache_key = f"test_questions_round_{st.session_state.round_number}_{quiz_dir_of_completed_round.replace(' ','_')}"
+            if completed_round_cache_key in st.session_state:
+                del st.session_state[completed_round_cache_key]
+
+            # Increment round number for the new round
             st.session_state.round_number += 1
+            
+            # Set stage for the new round
             st.session_state.stage = "learning_individual"
+            
+            # Prepare for the new learning round
             st.session_state.current_word_set = get_new_word_set(st.session_state.all_words_loaded, 10, st.session_state.seen_words_indices)
-            st.session_state.test_questions_cache = {} # Clear cache for the new round's questions
-            if not st.session_state.current_word_set: st.error("No new words."); st.session_state.stage = "welcome"
-            else: st.session_state.current_learning_word_index = 0; st.session_state.learning_word_start_time = time.time()
-            st.session_state.test_answers = {}; 
-            if 'submitted_test' in st.session_state: del st.session_state.submitted_test
-            st.rerun()
-    with col2:
-        if st.button("Restart Game 🔄", use_container_width=True, key=f"restart_game_{st.session_state.round_number}"):
-            current_quiz_dir = st.session_state.get("quiz_direction", "Polish to English")
-            loaded_words = st.session_state.get("all_words_loaded", [])
-            for key in list(st.session_state.keys()): del st.session_state[key]
-            for key, value in default_session_state.items(): st.session_state[key] = value
-            st.session_state.quiz_direction = current_quiz_dir; st.session_state.all_words_loaded = loaded_words
+            
+            if not st.session_state.current_word_set:
+                st.error("Could not load new words for the next round. Not enough unique words or list is too small.")
+                st.session_state.stage = "welcome" # Fallback to welcome if no words
+            else:
+                st.session_state.current_learning_word_index = 0
+                st.session_state.learning_word_start_time = time.time()
+            
+            # Clear states from the completed test/results
+            st.session_state.test_answers = {} 
+            if 'submitted_test' in st.session_state:
+                del st.session_state.submitted_test
+            
             st.rerun()
 else:
     st.error("Unknown stage. Resetting."); st.session_state.stage = "welcome"; st.rerun()
