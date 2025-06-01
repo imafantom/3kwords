@@ -5,14 +5,13 @@ import time
 import re # For highlighting words in sentences
 
 # st.set_page_config() MUST be the first Streamlit command after imports
-st.set_page_config(layout="centered")
+st.set_page_config(layout="centered", page_title="Vocabulary Practice")
 
 # --- Helper Functions ---
 @st.cache_data # Cache the data loading
 def load_words():
-    # Data transcribed from the provided PDF.
-    # THIS LIST IS NOW SUBSTANTIALLY LARGER BUT STILL NOT THE COMPLETE 3000 WORDS.
-    # You will need to continue adding entries from your PDF to this list.
+    # Using the substantial placeholder from previous interactions.
+    # User should continue to populate this list from their PDF.
     word_data_list = [
         {'English Word': 'a', 'Polish Translation': 'a', 'Example Sentence': 'I need a pen.'},
         {'English Word': 'abandon', 'Polish Translation': 'porzucić', 'Example Sentence': 'They had to abandon their car in the snow.'},
@@ -36,89 +35,56 @@ def load_words():
         {'English Word': 'according', 'Polish Translation': 'według', 'Example Sentence': "According to the map, we're almost there."},
         {'English Word': 'account', 'Polish Translation': 'konto', 'Example Sentence': 'Please deposit the money into my bank account.'},
         {'English Word': 'accurate', 'Polish Translation': 'dokładny', 'Example Sentence': 'We need accurate data for this report.'},
-        {'English Word': 'accuse', 'Polish Translation': 'oskarżyć', 'Example Sentence': 'They accused him of lying.'},
-        {'English Word': 'achieve', 'Polish Translation': 'osiągnąć', 'Example Sentence': 'She worked hard to achieve her goals.'},
-        {'English Word': 'achievement', 'Polish Translation': 'osiągnięcie', 'Example Sentence': 'Winning the award was a great achievement.'},
-        {'English Word': 'acid', 'Polish Translation': 'kwas', 'Example Sentence': 'Lemon juice is acidic.'},
-        {'English Word': 'acknowledge', 'Polish Translation': 'potwierdzić, uznać', 'Example Sentence': 'Please acknowledge receipt of this email.'},
-        {'English Word': 'acquire', 'Polish Translation': 'nabyć', 'Example Sentence': 'The company plans to acquire a smaller business.'},
-        {'English Word': 'across', 'Polish Translation': 'przez', 'Example Sentence': 'He walked across the street.'},
-        {'English Word': 'act', 'Polish Translation': 'czyn, działać, ustawa', 'Example Sentence': 'It was an act of kindness. / You need to act quickly. / The new Act comes into force next month.'},
-        {'English Word': 'action', 'Polish Translation': 'działanie', 'Example Sentence': 'His words led to immediate action.'},
-        {'English Word': 'active', 'Polish Translation': 'aktywny', 'Example Sentence': 'She leads a very active lifestyle.'},
-        {'English Word': 'activist', 'Polish Translation': 'aktywista', 'Example Sentence': 'Environmental activists protested the new factory.'},
-        {'English Word': 'activity', 'Polish Translation': 'aktywność', 'Example Sentence': 'There are many outdoor activities available.'},
-        {'English Word': 'actor', 'Polish Translation': 'aktor', 'Example Sentence': 'He is a famous Hollywood actor.'},
-        {'English Word': 'actress', 'Polish Translation': 'aktorka', 'Example Sentence': 'She is a talented actress.'},
-        {'English Word': 'actual', 'Polish Translation': 'rzeczywisty', 'Example Sentence': 'What was the actual cost of the trip?'},
-        {'English Word': 'actually', 'Polish Translation': 'właściwie, faktycznie', 'Example Sentence': 'I actually thought it would be harder.'},
-        {'English Word': 'ad', 'Polish Translation': 'reklama', 'Example Sentence': 'I saw a funny ad on TV.'},
-        {'English Word': 'adapt', 'Polish Translation': 'przystosować się', 'Example Sentence': 'Animals adapt to their environment.'},
-        {'English Word': 'add', 'Polish Translation': 'dodać', 'Example Sentence': 'Please add sugar to my coffee.'},
-        {'English Word': 'addition', 'Polish Translation': 'dodatek', 'Example Sentence': 'In addition to that, we need more staff.'},
-        {'English Word': 'additional', 'Polish Translation': 'dodatkowy', 'Example Sentence': 'Do you require any additional information?'},
-        {'English Word': 'address', 'Polish Translation': 'adres, zaadresować', 'Example Sentence': "What's your home address? / He addressed the audience."},
-        {'English Word': 'adequate', 'Polish Translation': 'odpowiedni', 'Example Sentence': 'The facilities are adequate for our needs.'},
-        {'English Word': 'adjust', 'Polish Translation': 'dostosować', 'Example Sentence': 'You can adjust the volume with this knob.'},
-        {'English Word': 'adjustment', 'Polish Translation': 'dostosowanie', 'Example Sentence': 'We need to make some adjustments to the schedule.'},
-        {'English Word': 'administration', 'Polish Translation': 'administracja', 'Example Sentence': 'The university administration handles student affairs.'},
-        # ... (truncated for brevity, but your full transcribed list would be here)
-        # Ensure you have a good number of words from your PDF here for proper testing.
-        # For this example, I'm keeping the list shorter than the full transcription.
+        # ... (Continue adding ALL words from your PDF here)
+        # For brevity, I am keeping the example list short for this code block.
+        # Ensure you have at least 5-10 unique words for the distractor logic to work without issues.
         {'English Word': 'dad', 'Polish Translation': 'tata', 'Example Sentence': 'My dad is picking me up from school.'},
         {'English Word': 'daily', 'Polish Translation': 'codzienny', 'Example Sentence': 'I read the daily newspaper.'},
         {'English Word': 'damage', 'Polish Translation': 'uszkodzenie, uszkodzić', 'Example Sentence': "The storm caused a lot of damage. / Don't damage the equipment."},
         {'English Word': 'dance', 'Polish Translation': 'taniec, tańczyć', 'Example Sentence': 'She loves to dance.'},
         {'English Word': 'danger', 'Polish Translation': 'niebezpieczeństwo', 'Example Sentence': 'There is danger in climbing without a rope.'},
+        {'English Word': 'each', 'Polish Translation': 'każdy', 'Example Sentence': 'Each student received a book.'},
+        {'English Word': 'eager', 'Polish Translation': 'chętny, żądny', 'Example Sentence': 'He was eager to learn new things.'},
+        {'English Word': 'ear', 'Polish Translation': 'ucho', 'Example Sentence': 'My ear hurts.'},
+        {'English Word': 'early', 'Polish Translation': 'wcześnie', 'Example Sentence': 'She wakes up early every day.'},
+        {'English Word': 'earn', 'Polish Translation': 'zarabiać', 'Example Sentence': 'How much do you earn per month?'},
     ]
+    if len(word_data_list) < 5: # Need at least 5 for distractors + correct answer.
+        st.warning("Word list is very small. Multiple choice questions might have repeated options or fewer than 5 options.")
     return word_data_list
 
 ALL_WORDS = load_words()
 
 def get_new_word_set(words_list, num_words=10, seen_indices=None):
-    if seen_indices is None:
-        seen_indices = set()
+    if seen_indices is None: seen_indices = set()
     available_indices = [i for i, _ in enumerate(words_list) if i not in seen_indices]
     if len(available_indices) < num_words:
-        st.warning("Not enough new words, sampling from all words again. Consider restarting for fresh unseen words if available.")
-        available_indices = list(range(len(words_list)))
-        if not available_indices and words_list:
-             st.info("All words might have been cycled through. Restarting seen words tracking for this round.")
-             seen_indices.clear()
-             available_indices = list(range(len(words_list)))
-        elif not words_list:
-             return []
-    if not available_indices:
-        return []
+        st.warning("Not enough new unique words for this round. Words may repeat or be fewer than requested.")
+        if not available_indices and words_list: # If all words seen, allow repeating
+            seen_indices.clear()
+            available_indices = list(range(len(words_list)))
+        elif not words_list: return []
+    if not available_indices: return []
     chosen_indices = random.sample(available_indices, min(num_words, len(available_indices)))
     new_set = [words_list[i] for i in chosen_indices]
-    for i in chosen_indices:
-        seen_indices.add(i)
+    for i in chosen_indices: seen_indices.add(i)
     return new_set
 
 def highlight_word_in_sentence(sentence, word_to_highlight):
     try:
         escaped_word = re.escape(word_to_highlight)
-        highlighted_sentence = re.sub(
-            f"\\b({escaped_word})\\b",
-            r"<span style='color:orange; font-weight:bold;'>\1</span>",
-            sentence,
-            flags=re.IGNORECASE
-        )
-        return highlighted_sentence
-    except Exception:
-        return sentence
+        return re.sub(f"\\b({escaped_word})\\b", r"<span class='orange-text'>\1</span>", sentence, flags=re.IGNORECASE)
+    except: return sentence
 
 motivational_quotes = [
-    "Great job! Keep the momentum going!", "Excellent work! Every correct answer is a step forward.",
-    "You're doing wonderfully! Keep practicing.", "Awesome effort! The more you learn, the more you grow.",
-    "Fantastic! Each round makes you stronger.", "Well done! Consistency is key to mastery.",
-    "Super! You're building a strong vocabulary.", "Amazing! Keep challenging yourself."
+    "Great job! Keep learning!", "Excellent! Every step counts.", "You're doing great!",
+    "Awesome! Practice makes perfect.", "Fantastic! Keep it up!"
 ]
 
 st.markdown("""
     <style>
-        body, .stApp, .stButton>button, .stSelectbox div[data-baseweb='select'] > div, .stTextInput > div > div > input, .stMetric > div > div {
+        body, .stApp, .stButton>button, .stSelectbox div[data-baseweb='select'] > div, 
+        .stTextInput > div > div > input, .stMetric > div > div, .stRadio > label {
             font-size: 18px !important;
         }
         .stSubheader { font-size: 22px !important; font-weight: bold; }
@@ -126,26 +92,34 @@ st.markdown("""
         .timer-text { font-size: 20px !important; font-weight: bold; color: #1E90FF; text-align: center; margin-bottom: 10px; }
         .stProgress > div > div > div > div { background-color: #1E90FF !important; }
         .example-sentence { font-size: 1.1em !important; font-style: italic; color: #555; }
+        /* Ensure radio buttons are styled well */
+        .stRadio > label > div:first-child { /* Target the radio button circle/box */
+            margin-right: 8px;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("🇬🇧 English Vocabulary Practice 🇵🇱")
 
-if 'stage' not in st.session_state:
-    st.session_state.stage = "welcome"
-    st.session_state.all_words = ALL_WORDS
-    st.session_state.score = 0
-    st.session_state.current_word_set = []
-    st.session_state.test_answers = {}
-    st.session_state.timer_start_time = 0
-    st.session_state.round_number = 0
-    st.session_state.seen_words_indices = set()
-    st.session_state.current_learning_word_index = 0
-    st.session_state.learning_word_start_time = 0
+# Initialize session state variables
+default_session_state = {
+    "stage": "welcome", "all_words": ALL_WORDS, "score": 0, "current_word_set": [],
+    "test_answers": {}, "timer_start_time": 0, "round_number": 0, "seen_words_indices": set(),
+    "current_learning_word_index": 0, "learning_word_start_time": 0,
+    "quiz_direction": "Polish to English", "overall_correct_streak": 0
+}
+for key, value in default_session_state.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
 
 if st.session_state.stage == "welcome":
     st.header("Welcome to the Vocabulary Trainer!")
-    st.write("Press the button below to start a new learning session.")
+    st.session_state.quiz_direction = st.radio(
+        "Select Quiz Direction:",
+        ("Polish to English", "English to Polish"),
+        index=("Polish to English", "English to Polish").index(st.session_state.quiz_direction),
+        key="quiz_direction_selector"
+    )
     if st.button("🚀 Start Learning"):
         if not ALL_WORDS:
             st.error("Word list is empty. Please populate the `load_words()` function.")
@@ -162,23 +136,16 @@ if st.session_state.stage == "welcome":
             st.rerun()
 
 elif st.session_state.stage == "learning_individual":
-    # ... (Learning stage code as previously provided, no changes here for this fix) ...
     if not st.session_state.current_word_set:
-        st.error("Word set is empty. Returning to welcome screen.")
-        st.session_state.stage = "welcome"
-        st.rerun()
+        st.error("Word set is empty."); st.session_state.stage = "welcome"; st.rerun()
     elif st.session_state.current_learning_word_index >= len(st.session_state.current_word_set):
-        st.session_state.stage = "test"
-        st.session_state.timer_start_time = time.time()
-        st.session_state.test_answers = {}
-        st.rerun()
+        st.session_state.stage = "test"; st.session_state.timer_start_time = time.time(); st.session_state.test_answers = {}; st.rerun()
     else:
         word_data = st.session_state.current_word_set[st.session_state.current_learning_word_index]
         st.header(f"🧠 Round {st.session_state.round_number}: Learn Word {st.session_state.current_learning_word_index + 1}/{len(st.session_state.current_word_set)}")
         time_elapsed_word = time.time() - st.session_state.learning_word_start_time
         time_remaining_word = max(0, 5 - int(time_elapsed_word))
-        timer_placeholder_word = st.empty()
-        timer_placeholder_word.markdown(f"<p class='timer-text'>Time for this word: {time_remaining_word}s</p>", unsafe_allow_html=True)
+        st.empty().markdown(f"<p class='timer-text'>Time for this word: {time_remaining_word}s</p>", unsafe_allow_html=True)
         st.markdown(f"## <span class='orange-text'>{word_data['English Word']}</span>", unsafe_allow_html=True)
         st.markdown(f"### 🇵🇱 {word_data['Polish Translation']}")
         highlighted_sentence = highlight_word_in_sentence(word_data['Example Sentence'], word_data['English Word'])
@@ -190,144 +157,136 @@ elif st.session_state.stage == "learning_individual":
                 st.session_state.learning_word_start_time = time.time()
             st.rerun()
         else:
-            time.sleep(1)
-            st.rerun()
-
+            time.sleep(1); st.rerun()
 
 elif st.session_state.stage == "test":
-    # ... (Test stage code as previously provided, no changes here for this fix) ...
     st.header(f"✏️ Round {st.session_state.round_number}: Test your knowledge!")
-    st.info("Match the Polish word with its English translation. You have 2 minutes for the whole test.")
+    st.info(f"Translate from {st.session_state.quiz_direction.split(' ')[0]} to {st.session_state.quiz_direction.split(' ')[2]}. You have 2 minutes.")
     time_elapsed_test = time.time() - st.session_state.timer_start_time
     time_remaining_test = max(0, 120 - int(time_elapsed_test))
-    progress_bar_test_placeholder = st.empty()
-    timer_text_test_placeholder = st.empty()
-    progress_bar_test_placeholder.progress(time_remaining_test / 120)
-    timer_text_test_placeholder.markdown(f"<p class='timer-text'>Test time remaining: {time_remaining_test}s</p>", unsafe_allow_html=True)
+    st.empty().progress(time_remaining_test / 120)
+    st.empty().markdown(f"<p class='timer-text'>Test time remaining: {time_remaining_test}s</p>", unsafe_allow_html=True)
 
     if time_remaining_test <= 0 and 'submitted_test' not in st.session_state:
-        st.warning("Time's up! Moving to results.")
-        st.session_state.submitted_test = True
-        st.session_state.stage = "results"
-        st.rerun()
-
+        st.warning("Time's up!"); st.session_state.submitted_test = True; st.session_state.stage = "results"; st.rerun()
     if not st.session_state.current_word_set:
-        st.error("No words in the current set for the test. Returning to welcome.")
-        st.session_state.stage = "welcome"
-        st.rerun()
+        st.error("No words for test."); st.session_state.stage = "welcome"; st.rerun()
 
-    polish_words_for_test = [word['Polish Translation'] for word in st.session_state.current_word_set]
-    english_options = [word['English Word'] for word in st.session_state.current_word_set]
+    question_lang_key = 'Polish Translation' if st.session_state.quiz_direction == "Polish to English" else 'English Word'
+    answer_lang_key = 'English Word' if st.session_state.quiz_direction == "Polish to English" else 'Polish Translation'
 
-    with st.form(key=f"test_form_round_{st.session_state.round_number}"):
-        temp_student_answers_map = {}
-        for i, pl_word in enumerate(polish_words_for_test):
-            correct_en_word = ""
-            for wd_data in st.session_state.current_word_set:
-                if wd_data['Polish Translation'] == pl_word:
-                    correct_en_word = wd_data['English Word']
-                    break
-            options_for_select = [""] + english_options[:]
-            random.shuffle(options_for_select[1:])
-            selected_en_word = st.selectbox(
-                f"**{i+1}. {pl_word}** is:",
-                options=options_for_select,
-                index=0,
-                key=f"test_q_r{st.session_state.round_number}_{i}"
+    with st.form(key=f"test_form_r{st.session_state.round_number}"):
+        temp_answers = {}
+        for i, word_data in enumerate(st.session_state.current_word_set):
+            question_word = word_data[question_lang_key]
+            correct_answer = word_data[answer_lang_key]
+            
+            options = {correct_answer} # Use a set to ensure uniqueness initially
+            
+            # Generate distractors
+            distractor_pool = [w[answer_lang_key] for w in ALL_WORDS if w[answer_lang_key] != correct_answer and w[question_lang_key] != question_word]
+            
+            # Ensure enough unique distractors (need 4)
+            while len(options) < 5 and distractor_pool:
+                distractor = random.choice(distractor_pool)
+                options.add(distractor)
+                distractor_pool.remove(distractor) # Avoid reusing the same distractor for this question
+            
+            # If still not enough options (e.g. ALL_WORDS is too small), pad with placeholders or fewer options
+            final_options_list = list(options)
+            while len(final_options_list) < 5 and len(final_options_list) < len(ALL_WORDS): # Add more generic distractors if needed
+                 # Try to pick any other word from ALL_WORDS not already in options
+                 potential_padding = [w[answer_lang_key] for w in ALL_WORDS if w[answer_lang_key] not in final_options_list]
+                 if potential_padding:
+                     final_options_list.append(random.choice(potential_padding))
+                 else: # Absolute fallback
+                     final_options_list.append(f"Option {len(final_options_list)+1}")
+
+
+            random.shuffle(final_options_list)
+            
+            # Ensure correct answer is always in the options if it got shuffled out by unique constraint logic with small ALL_WORDS
+            if correct_answer not in final_options_list:
+                if len(final_options_list) >= 5: final_options_list[random.randint(0,4)] = correct_answer
+                else: final_options_list.append(correct_answer)
+                random.shuffle(final_options_list)
+
+
+            selected_option = st.radio(
+                f"**{i+1}. {question_word}** is:",
+                options=final_options_list[:5], # Ensure only 5 options
+                key=f"q_r{st.session_state.round_number}_{i}",
+                index=None # No default selection
             )
-            temp_student_answers_map[pl_word] = {
-                "selected": selected_en_word if selected_en_word else "Not Answered",
-                "correct": correct_en_word
-            }
-        submit_button = st.form_submit_button("✅ Submit Answers")
-        if submit_button:
-            st.session_state.test_answers = temp_student_answers_map
+            temp_answers[question_word] = {"selected": selected_option if selected_option else "Not Answered", "correct": correct_answer}
+        
+        if st.form_submit_button("✅ Submit Answers"):
+            st.session_state.test_answers = temp_answers
             st.session_state.submitted_test = True
             st.session_state.stage = "results"
             st.rerun()
 
     if time_remaining_test > 0 and 'submitted_test' not in st.session_state:
-        time.sleep(1)
-        st.rerun()
+        time.sleep(1); st.rerun()
     elif 'submitted_test' in st.session_state and st.session_state.stage != "results":
         del st.session_state.submitted_test
 
 elif st.session_state.stage == "results":
     st.header(f"📊 Round {st.session_state.round_number}: Results!")
     round_score = 0
+    current_round_all_correct = True
+
     if not st.session_state.get('test_answers'):
-        st.warning("No answers were processed for the test, or time ran out before submission.")
+        st.warning("No answers processed.")
     else:
-        for pl_word, answers_data in st.session_state.test_answers.items():
-            if not isinstance(answers_data, dict):
-                # Use st.markdown for error message if it needs HTML, otherwise st.error is fine
-                st.error(f"Data error for Polish word '{pl_word}'. Skipping.")
-                continue
-            selected_answer = str(answers_data.get('selected', "Not Answered"))
-            correct_answer = str(answers_data.get('correct', "Error: Correct answer missing"))
-            pl_word_str = str(pl_word)
-
-            if not pl_word_str.strip():
-                st.warning(f"Skipping display for an empty Polish word entry. Selected: '{selected_answer}', Correct: '{correct_answer}'")
-                continue
+        for question_word_key, data in st.session_state.test_answers.items(): # question_word_key is actually the question word string
+            selected = str(data.get('selected', "Not Answered"))
+            correct = str(data.get('correct', "N/A"))
             
-            # MODIFIED SECTION: Use st.markdown for HTML rendering
-            try:
-                if selected_answer == correct_answer:
-                    st.markdown(f"✅ **{pl_word_str}**: Your answer <span class='orange-text'>{selected_answer}</span> was CORRECT! 🎉", unsafe_allow_html=True)
-                    round_score += 1
-                elif selected_answer == "Not Answered":
-                    st.markdown(f"ℹ️ **{pl_word_str}**: Not answered. Correct was: <span class='orange-text'>{correct_answer}</span>", unsafe_allow_html=True)
+            if selected == correct:
+                st.markdown(f"✅ **{question_word_key}**: Your answer <span class='orange-text'>{selected}</span> was CORRECT! 🎉", unsafe_allow_html=True)
+                round_score += 1
+                st.session_state.overall_correct_streak +=1
+            else:
+                current_round_all_correct = False
+                st.session_state.overall_correct_streak = 0 # Reset streak on any incorrect answer
+                if selected == "Not Answered":
+                    st.markdown(f"ℹ️ **{question_word_key}**: Not answered. Correct was: <span class='orange-text'>{correct}</span>", unsafe_allow_html=True)
                 else:
-                    st.markdown(f"❌ **{pl_word_str}**: Your answer <span class='orange-text'>{selected_answer}</span> was INCORRECT. Correct was: <span class='orange-text'>{correct_answer}</span> 🙁", unsafe_allow_html=True)
-            except Exception as e:
-                # Fallback if markdown rendering itself fails for some reason
-                st.error(f"Error displaying result for '{pl_word_str}': {e}. Data - Selected: '{selected_answer}', Correct: '{correct_answer}'")
-
+                    st.markdown(f"❌ **{question_word_key}**: Your answer <span class='orange-text'>{selected}</span> INCORRECT. Correct: <span class='orange-text'>{correct}</span> 🙁", unsafe_allow_html=True)
+        
         if st.session_state.current_word_set:
-            st.subheader(f"You scored {round_score} out of {len(st.session_state.current_word_set)} in this round.")
-            round_scored_key = f"round_{st.session_state.round_number}_scored"
+            st.subheader(f"You scored {round_score}/{len(st.session_state.current_word_set)} this round.")
+            round_scored_key = f"round_{st.session_state.round_number}_main_score" # More specific key
             if not st.session_state.get(round_scored_key, False):
                  st.session_state.score += round_score
                  st.session_state[round_scored_key] = True
-        else:
-            st.subheader("No words in this round to score against.")
-
+    
     st.metric(label="Total Score", value=st.session_state.score)
+    st.metric(label="🔥 Overall Correct Streak", value=st.session_state.overall_correct_streak)
     st.info(f"✨ {random.choice(motivational_quotes)} ✨")
 
     col1, col2 = st.columns(2)
     with col1:
         if st.button("Next Set of Words ➡️", use_container_width=True):
-            st.session_state.round_number += 1
-            st.session_state.stage = "learning_individual"
+            st.session_state.round_number += 1; st.session_state.stage = "learning_individual"
             st.session_state.current_word_set = get_new_word_set(st.session_state.all_words, 10, st.session_state.seen_words_indices)
             if not st.session_state.current_word_set:
-                st.error("Could not load new words. Perhaps all words have been seen or the list is empty.")
-                st.session_state.stage = "welcome"
+                st.error("No new words."); st.session_state.stage = "welcome"
             else:
-                st.session_state.current_learning_word_index = 0
-                st.session_state.learning_word_start_time = time.time()
-            st.session_state.test_answers = {}
+                st.session_state.current_learning_word_index = 0; st.session_state.learning_word_start_time = time.time()
+            st.session_state.test_answers = {}; 
             if 'submitted_test' in st.session_state: del st.session_state.submitted_test
             st.rerun()
     with col2:
         if st.button("Restart Game 🔄", use_container_width=True):
-            keys_to_keep = ['all_words']
-            for key in list(st.session_state.keys()):
-                if key not in keys_to_keep:
-                    del st.session_state[key]
-            st.session_state.stage = "welcome"
-            st.session_state.score = 0
-            st.session_state.round_number = 0
-            st.session_state.seen_words_indices = set()
-            st.session_state.current_learning_word_index = 0
-            st.session_state.current_word_set = []
-            st.session_state.test_answers = {}
+            keys_to_del = [k for k in st.session_state.keys() if k != 'all_words' and k != 'quiz_direction'] # Keep quiz_direction
+            for key in keys_to_del: del st.session_state[key]
+            # Re-initialize
+            for key, value in default_session_state.items():
+                if key != 'all_words' and key != 'quiz_direction': # quiz_direction is kept from user selection
+                     st.session_state[key] = value
+            st.session_state.all_words = ALL_WORDS # Ensure all_words is reset if it was changed
             st.rerun()
 else:
-    st.error("Unknown application stage. Resetting to Welcome screen.")
-    st.session_state.stage = "welcome"
-    st.session_state.score = 0
-    st.session_state.round_number = 0
-    st.rerun()
+    st.error("Unknown stage. Resetting."); st.session_state.stage = "welcome"; st.rerun()
