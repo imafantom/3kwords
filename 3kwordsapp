@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import random
@@ -6,13 +5,13 @@ import time
 import re # For highlighting words in sentences
 
 # st.set_page_config() MUST be the first Streamlit command after imports
-st.set_page_config(layout="centered", page_title="The Ultimate Vocabulary Test") # Title updated here for browser tab
+st.set_page_config(layout="centered", page_title="Vocabulary Practice")
 
-# --- Helper Functions (load_words, get_new_word_set, highlight_word_in_sentence, motivational_quotes) ---
-@st.cache_data
+# --- Helper Functions ---
+@st.cache_data # Cache the data loading
 def load_words():
-    # PASTE YOUR FULL word_data_list HERE
-    # Example structure:
+    # EXTENSIVELY EXPANDED WORD LIST FROM YOUR PDF for letters A, B, C, D, E, F.
+    # Please continue to add words from your PDF to complete this list.
     word_data_list = [
         # Words starting with A (from your PDF - aiming for up to 50)
         {'English Word': 'a', 'Polish Translation': 'a', 'Example Sentence': 'I need a pen.'},
@@ -176,25 +175,25 @@ def load_words():
         {'English Word': 'damage', 'Polish Translation': 'uszkodzenie, uszkodzić', 'Example Sentence': "The storm caused a lot of damage. / Don't damage the equipment."}, # Source 69
         {'English Word': 'dance', 'Polish Translation': 'taniec, tańczyć', 'Example Sentence': 'She loves to dance.'}, # Source 69
         {'English Word': 'danger', 'Polish Translation': 'niebezpieczeństwo', 'Example Sentence': 'There is danger in climbing without a rope.'}, # Source 69
-        # Ensure this list is well-populated for the app to function correctly,
-        # especially the distractor logic which needs a decent pool of words.
+        # ... and so on for D, E, F, and then G-Z.
+        # This data entry is manual and time-consuming from a PDF.
+        # The more words you add following this structure, the better the app will be.
     ]
-    if not word_data_list:
-        return []
-    if len(word_data_list) < 20: # Warn if list is too small for good distractor generation
-        st.sidebar.warning(f"Word list is very small ({len(word_data_list)} words). This may affect question variety.")
+    if len(word_data_list) < 20:
+        st.warning("Word list is very small. Multiple choice questions might have repeated options or fewer than 5 options. Please add more words.")
     return word_data_list
 
 ALL_WORDS = load_words()
 
 def get_new_word_set(words_list, num_words=10, seen_indices=None):
     if seen_indices is None: seen_indices = set()
-    if not words_list: return []
     available_indices = [i for i, _ in enumerate(words_list) if i not in seen_indices]
     if len(available_indices) < num_words:
-        # st.sidebar.warning("Not enough new unique words. Words may repeat.") # Removed to avoid clutter if user doesn't want sidebar
+        st.sidebar.warning("Not enough new unique words. Words may repeat.") # Changed to sidebar warning
         if not available_indices and words_list:
-            seen_indices.clear(); available_indices = list(range(len(words_list)))
+             seen_indices.clear()
+             available_indices = list(range(len(words_list)))
+        elif not words_list: return []
     if not available_indices: return []
     actual_num_words_to_sample = min(num_words, len(available_indices))
     if actual_num_words_to_sample == 0: return []
@@ -204,7 +203,6 @@ def get_new_word_set(words_list, num_words=10, seen_indices=None):
     return new_set
 
 def highlight_word_in_sentence(sentence, word_to_highlight):
-    if not sentence or not word_to_highlight: return sentence
     try:
         escaped_word = re.escape(word_to_highlight)
         return re.sub(f"\\b({escaped_word})\\b", r"<span class='orange-text'>\1</span>", sentence, flags=re.IGNORECASE)
@@ -212,198 +210,131 @@ def highlight_word_in_sentence(sentence, word_to_highlight):
 
 motivational_quotes = [
     "Great job! Keep learning!", "Excellent! Every step counts.", "You're doing great!",
-    "Awesome! Practice makes perfect.", "Fantastic! Keep it up!", "Progress, not perfection!",
-    "You're making strides!", "Each correct answer builds your knowledge!"
+    "Awesome! Practice makes perfect.", "Fantastic! Keep it up!"
 ]
-
-# --- CALLBACKS ---
-def setup_next_round_callback():
-    # st.sidebar.info("DEBUG (Callback): setup_next_round_callback called.") # Removed sidebar debug
-    quiz_dir_of_completed_round = st.session_state.get("quiz_direction", "Polish to English")
-    completed_round_number = st.session_state.get("round_number", 0)
-    completed_round_cache_key = f"test_questions_round_{completed_round_number}_{quiz_dir_of_completed_round.replace(' ','_')}"
-    if completed_round_cache_key in st.session_state.get('test_questions_cache', {}):
-        del st.session_state['test_questions_cache'][completed_round_cache_key]
-    elif completed_round_cache_key in st.session_state:
-        del st.session_state[completed_round_cache_key]
-
-    st.session_state.round_number += 1
-    st.session_state.stage = "learning_individual"
-    st.session_state.current_word_set = get_new_word_set(st.session_state.all_words_loaded, st.session_state.num_words_per_round, st.session_state.seen_words_indices)
-    if not st.session_state.current_word_set:
-        st.session_state.stage = "welcome"
-    else:
-        st.session_state.current_learning_word_index = 0
-        st.session_state.learning_word_start_time = time.time()
-    st.session_state.test_answers = {}; 
-    if 'submitted_test' in st.session_state: del st.session_state.submitted_test
-
-def restart_game_callback():
-    # st.sidebar.info("DEBUG (Callback): restart_game_callback called.") # Removed sidebar debug
-    current_quiz_dir = st.session_state.get("quiz_direction", "Polish to English")
-    num_words_setting = st.session_state.get("num_words_per_round", 10) # Preserve num_words setting
-    loaded_words = st.session_state.get("all_words_loaded", [])
-    if not loaded_words and ALL_WORDS: loaded_words = ALL_WORDS
-    for key in list(st.session_state.keys()): del st.session_state[key]
-    for key, value in default_session_state.items(): st.session_state[key] = value
-    st.session_state.quiz_direction = current_quiz_dir
-    st.session_state.num_words_per_round = num_words_setting # Restore
-    st.session_state.all_words_loaded = loaded_words
-
-
-# --- Initialize session state variables robustly ---
-default_session_state = {
-    "stage": "welcome", "all_words_loaded": ALL_WORDS if ALL_WORDS else [], "score": 0, "current_word_set": [],
-    "test_answers": {}, "timer_start_time": 0, "round_number": 0, "seen_words_indices": set(),
-    "current_learning_word_index": 0, "learning_word_start_time": 0,
-    "quiz_direction": "Polish to English", "overall_correct_streak": 0,
-    "test_questions_cache": {}, "num_words_per_round": 10, # Default words per round
-    "learning_mode": "Timed (5s per word)" # Default learning mode
-}
-for key, value in default_session_state.items():
-    if key not in st.session_state: st.session_state[key] = value
-if not st.session_state.all_words_loaded and ALL_WORDS: st.session_state.all_words_loaded = ALL_WORDS
 
 st.markdown("""
     <style>
-        /* ... (CSS styles remain the same as previous full code) ... */
         body, .stApp, .stButton>button, .stSelectbox div[data-baseweb='select'] > div, 
-        .stTextInput > div > div > input, .stMetric > div > div, .stRadio > label { font-size: 18px !important; }
+        .stTextInput > div > div > input, .stMetric > div > div, .stRadio > label {
+            font-size: 18px !important;
+        }
         .stSubheader { font-size: 22px !important; font-weight: bold; }
         .orange-text { color: orange; font-weight: bold; }
         .timer-text { font-size: 20px !important; font-weight: bold; color: #1E90FF; text-align: center; margin-bottom: 10px; }
         .stProgress > div > div > div > div { background-color: #1E90FF !important; }
-        .example-sentence { font-size: 1.2em !important; font-style: italic; color: #444; margin-top: 5px; line-height: 1.4; }
+        .example-sentence { font-size: 1.2em !important; font-style: italic; color: #444; margin-top: 5px; line-height: 1.4; } /* Slightly larger & more line height */
         .stRadio > label > div:first-child { margin-right: 8px; }
         .stRadio { padding-bottom: 5px; }
-        .welcome-text {font-size: 1.1em; margin-bottom: 15px;}
-        .total-words-info {font-style: italic; color: grey; margin-bottom:20px;}
     </style>
 """, unsafe_allow_html=True)
 
-st.title("✨ The Ultimate Vocabulary Test ✨") # Title Updated
+st.title("🇬🇧 English Vocabulary Practice 🇵🇱")
 
-# --- Main App Logic ---
+default_session_state = {
+    "stage": "welcome", "all_words_loaded": ALL_WORDS, "score": 0, "current_word_set": [],
+    "test_answers": {}, "timer_start_time": 0, "round_number": 0, "seen_words_indices": set(),
+    "current_learning_word_index": 0, "learning_word_start_time": 0,
+    "quiz_direction": "Polish to English", "overall_correct_streak": 0,
+    "test_questions_cache": {} # To store generated questions for the current test round
+}
+for key, value in default_session_state.items():
+    if key not in st.session_state:
+        st.session_state[key] = value
+if 'all_words_loaded' not in st.session_state or not st.session_state.all_words_loaded:
+    st.session_state.all_words_loaded = load_words()
+
 if st.session_state.stage == "welcome":
     st.header("Welcome to the Vocabulary Trainer!")
-    st.markdown("<p class='welcome-text'>Select your preferences and start learning new words!</p>", unsafe_allow_html=True)
-
-    total_words = len(st.session_state.all_words_loaded)
-    st.markdown(f"<p class='total-words-info'>Total words currently in vocabulary: {total_words}</p>", unsafe_allow_html=True)
-
     current_quiz_direction_index = ("Polish to English", "English to Polish").index(st.session_state.get("quiz_direction", "Polish to English"))
     st.session_state.quiz_direction = st.radio(
         "Select Quiz Direction:", ("Polish to English", "English to Polish"),
         index=current_quiz_direction_index, key="quiz_direction_selector"
     )
-    st.session_state.num_words_per_round = st.slider(
-        "Words per round:", min_value=5, max_value=20, 
-        value=st.session_state.get("num_words_per_round", 10), step=1, key="num_words_slider"
-    )
-    st.session_state.learning_mode = st.radio(
-        "Learning Mode:", ("Timed (5s per word)", "Manual (Next Word button)"),
-        index=("Timed (5s per word)", "Manual (Next Word button)").index(st.session_state.get("learning_mode", "Timed (5s per word)")),
-        key="learning_mode_selector"
-    )
-
     if st.button("🚀 Start Learning"):
         if not st.session_state.all_words_loaded:
-            st.error("Word list is empty. Please add words to the `load_words()` function.")
-        elif total_words < st.session_state.num_words_per_round and total_words < 5 : # Need enough for one round and distractors
-            st.error(f"Not enough words in the vocabulary ({total_words}) to start a round of {st.session_state.num_words_per_round} words or generate test options. Please add more words.")
+            st.error("Word list is empty. Please populate `load_words()` or check data source.")
         else:
-            st.session_state.round_number = st.session_state.get("round_number", 0) + 1
+            st.session_state.round_number += 1
             st.session_state.stage = "learning_individual"
-            st.session_state.current_word_set = get_new_word_set(st.session_state.all_words_loaded, st.session_state.num_words_per_round, st.session_state.seen_words_indices)
+            st.session_state.current_word_set = get_new_word_set(st.session_state.all_words_loaded, 10, st.session_state.seen_words_indices)
+            # Clear cache for test questions of the *new* upcoming round
             st.session_state.test_questions_cache = {}
             if not st.session_state.current_word_set:
-                st.error("Could not load words for the round. Check vocabulary size."); st.session_state.stage = "welcome"
+                st.error("Could not load new words. Not enough unique words available or list is too small."); st.session_state.stage = "welcome"
             else:
                 st.session_state.current_learning_word_index = 0; st.session_state.learning_word_start_time = time.time()
             st.rerun()
 
 elif st.session_state.stage == "learning_individual":
-    num_words_in_set = len(st.session_state.current_word_set) if st.session_state.current_word_set else 0
+    # ... (Learning stage logic - kept concise for this overview, assume it's the working version)
     if not st.session_state.current_word_set: st.error("Word set is empty."); st.session_state.stage = "welcome"; st.rerun()
-    elif st.session_state.current_learning_word_index >= num_words_in_set:
+    elif st.session_state.current_learning_word_index >= len(st.session_state.current_word_set):
         st.session_state.stage = "test"; st.session_state.timer_start_time = time.time(); st.session_state.test_answers = {}; st.rerun()
     else:
         word_data = st.session_state.current_word_set[st.session_state.current_learning_word_index]
-        st.header(f"🧠 Round {st.session_state.round_number}: Learn Word {st.session_state.current_learning_word_index + 1}/{num_words_in_set}")
-        
-        if st.session_state.learning_mode == "Timed (5s per word)":
-            time_elapsed_word = time.time() - st.session_state.learning_word_start_time
-            time_remaining_word = max(0, 5 - int(time_elapsed_word))
-            st.empty().markdown(f"<p class='timer-text'>Time for this word: {time_remaining_word}s</p>", unsafe_allow_html=True)
-        
+        st.header(f"🧠 Round {st.session_state.round_number}: Learn Word {st.session_state.current_learning_word_index + 1}/{len(st.session_state.current_word_set)}")
+        time_elapsed_word = time.time() - st.session_state.learning_word_start_time
+        time_remaining_word = max(0, 5 - int(time_elapsed_word))
+        st.empty().markdown(f"<p class='timer-text'>Time for this word: {time_remaining_word}s</p>", unsafe_allow_html=True)
         english_display = word_data.get('English Word', 'N/A'); polish_display = word_data.get('Polish Translation', 'N/A'); sentence_display = word_data.get('Example Sentence', 'No example.')
         st.markdown(f"## <span class='orange-text'>{english_display}</span>", unsafe_allow_html=True)
         st.markdown(f"### 🇵🇱 {polish_display}")
         st.markdown(f"<p class='example-sentence'>📖 Example: {highlight_word_in_sentence(sentence_display, english_display)}</p>", unsafe_allow_html=True)
         st.markdown("---")
-
-        if st.session_state.learning_mode == "Timed (5s per word)":
-            if time_remaining_word <= 0:
-                st.session_state.current_learning_word_index += 1
-                if st.session_state.current_learning_word_index < num_words_in_set: st.session_state.learning_word_start_time = time.time()
-                st.rerun()
-            else: time.sleep(1); st.rerun()
-        else: # Manual mode
-            if st.button("Next Word ➡️", key=f"next_learn_word_{st.session_state.current_learning_word_index}"):
-                st.session_state.current_learning_word_index += 1
-                if st.session_state.current_learning_word_index < num_words_in_set: st.session_state.learning_word_start_time = time.time() # Reset for potential future use
-                st.rerun()
-
+        if time_remaining_word <= 0:
+            st.session_state.current_learning_word_index += 1
+            if st.session_state.current_learning_word_index < len(st.session_state.current_word_set): st.session_state.learning_word_start_time = time.time()
+            st.rerun()
+        else: time.sleep(1); st.rerun()
 
 elif st.session_state.stage == "test":
-    # ... (Test stage - using the stable option generation logic from the previous full code) ...
-    # This stage uses the test_questions_cache correctly.
+    # This is the critical stage that was fixed for stable options
     quiz_dir = st.session_state.get("quiz_direction", "Polish to English")
-    num_words_for_test = len(st.session_state.current_word_set) if st.session_state.current_word_set else 0
-    
-    # Display progress within the test
-    st.subheader(f"Question {st.session_state.get('current_test_question_index', 0) + 1} of {num_words_for_test}")
+    test_cache_key = f"test_questions_round_{st.session_state.round_number}_{quiz_dir}"
 
-
-    test_cache_key = f"test_questions_round_{st.session_state.round_number}_{quiz_dir.replace(' ','_')}"
-    if not st.session_state.test_questions_cache.get(test_cache_key):
-        # ... (Question generation logic - this is complex and kept from previous working version)
+    if not st.session_state.get(test_cache_key): # Generate questions ONCE per round/direction
         generated_questions = []
         question_lang_key = 'Polish Translation' if quiz_dir == "Polish to English" else 'English Word'
         answer_lang_key = 'English Word' if quiz_dir == "Polish to English" else 'Polish Translation'
-        if not st.session_state.current_word_set : st.error("Test Error: Word set empty."); st.session_state.stage="welcome"; st.rerun()
+        
+        if not st.session_state.current_word_set: # Should not happen if learning stage completed
+            st.error("Cannot start test, word set is empty."); st.session_state.stage="welcome"; st.rerun()
 
         for i, word_data in enumerate(st.session_state.current_word_set):
             question_word = word_data.get(question_lang_key, "N/A Question")
             correct_answer = word_data.get(answer_lang_key, "N/A Answer")
             options = {correct_answer}
-            all_possible_answers = [w.get(answer_lang_key, "") for w in st.session_state.all_words_loaded if w and w.get(answer_lang_key)]
-            distractor_pool = [ans for ans in all_possible_answers if ans and ans != correct_answer and ans != word_data.get(question_lang_key)]
+            all_possible_answers = [w.get(answer_lang_key, "") for w in st.session_state.all_words_loaded]
+            distractor_pool = [ans for ans in all_possible_answers if ans and ans != correct_answer and ans != word_data.get(question_lang_key)] # ensure distractor is not the question itself
+
             chosen_distractors = set()
             if distractor_pool:
-                num_to_sample = min(4, len(set(distractor_pool)))
-                if num_to_sample > 0: chosen_distractors.update(random.sample(list(set(distractor_pool)), num_to_sample))
+                while len(chosen_distractors) < 4 and distractor_pool:
+                    distractor = random.choice(distractor_pool)
+                    chosen_distractors.add(distractor)
+                    distractor_pool.remove(distractor)
             options.update(chosen_distractors)
             final_options_list = list(options)
-            idx = 0
-            while len(final_options_list) < 5:
-                padding_candidates = [ans for ans in all_possible_answers if ans not in final_options_list]
-                if padding_candidates: final_options_list.append(random.choice(padding_candidates))
-                else: padding = f"Option {idx+random.randint(100,200)}"; final_options_list.append(padding)
-                idx +=1;  If idx > 20 : break
-            if correct_answer not in final_options_list:
+            while len(final_options_list) < 5: # Pad if not enough
+                padding = f"Option {len(final_options_list)}_{random.randint(301,400)}"
+                if padding not in final_options_list: final_options_list.append(padding)
+                else: final_options_list.append(f"Pad_{random.randint(401,500)}")
+
+            if correct_answer not in final_options_list: # Ensure correct is there
                 if len(final_options_list) >=5 : final_options_list[random.randint(0,4)] = correct_answer
-                elif len(final_options_list) < 5: final_options_list.append(correct_answer)
-            final_options_list = list(set(final_options_list))
-            while len(final_options_list) < 5: final_options_list.append(f"PadOpt{len(final_options_list)}_{random.randint(201,300)}")
+                else: final_options_list.append(correct_answer)
+            
+            final_options_list = final_options_list[:5] # Ensure exactly 5
             random.shuffle(final_options_list)
+            
             generated_questions.append({
                 "question_word": question_word, "correct_answer": correct_answer,
-                "options": final_options_list[:5], "form_key": f"q_r{st.session_state.round_number}_{i}_{quiz_dir.replace(' ','_')}_{random.randint(0,10000)}"
+                "options": final_options_list, "form_key": f"q_r{st.session_state.round_number}_{i}_{quiz_dir.replace(' ','_')}"
             })
-        st.session_state.test_questions_cache[test_cache_key] = generated_questions
-        st.session_state.current_test_question_index = 0 # Initialize for progress display
+        st.session_state[test_cache_key] = generated_questions
 
+    # Display part of Test Stage
     st.header(f"✏️ Round {st.session_state.round_number}: Test your knowledge!")
     st.info(f"Translate from {quiz_dir.split(' ')[0]} to {quiz_dir.split(' ')[2]}. You have 2 minutes.")
     time_elapsed_test = time.time() - st.session_state.timer_start_time
@@ -416,18 +347,11 @@ elif st.session_state.stage == "test":
 
     with st.form(key=f"test_form_r{st.session_state.round_number}_{quiz_dir}_form"):
         temp_answers = {}
-        retrieved_questions = st.session_state.test_questions_cache.get(test_cache_key, [])
-        if not retrieved_questions and st.session_state.current_word_set : st.error("Error: Questions not loaded."); st.stop()
-        
-        # For displaying progress X of Y
-        if retrieved_questions:
-            st.markdown(f"**Progress: Question {st.session_state.get('current_test_question_display_num', 1)} of {len(retrieved_questions)}**")
-            # This progress is for display only, the actual questions are all rendered in the form at once.
-            # A true "one question at a time" test would require a different structure.
+        retrieved_questions = st.session_state.get(test_cache_key, [])
+        if not retrieved_questions and st.session_state.current_word_set : # Should have been generated
+             st.error("Question cache is empty. Please restart round."); st.stop()
 
         for i, q_data in enumerate(retrieved_questions):
-            # This index 'i' can be used to update a displayed current question number if we switch to one-by-one display
-            # st.session_state.current_test_question_index = i # This would change on each form element render, not ideal for "current question"
             selected_option = st.radio(
                 f"**{i+1}. {q_data['question_word']}** is:",
                 options=q_data['options'], key=q_data['form_key'], index=None
@@ -439,11 +363,13 @@ elif st.session_state.stage == "test":
             st.session_state.submitted_test = True
             st.session_state.stage = "results"
             st.rerun()
-    if time_remaining_test > 0 and 'submitted_test' not in st.session_state: time.sleep(1); st.rerun()
+
+    if time_remaining_test > 0 and 'submitted_test' not in st.session_state:
+        time.sleep(1); st.rerun()
 
 
 elif st.session_state.stage == "results":
-    # ... (Results stage logic - using callbacks for buttons) ...
+    # ... (Results stage logic - kept concise, assume it's the working version using st.markdown) ...
     st.header(f"📊 Round {st.session_state.round_number}: Results!")
     round_score = 0
     if not st.session_state.get('test_answers'): st.warning("No answers processed.")
@@ -457,17 +383,32 @@ elif st.session_state.stage == "results":
                 st.session_state.overall_correct_streak = 0
                 if selected == "Not Answered": st.markdown(f"ℹ️ **{question_word}**: Not answered. Correct: <span class='orange-text'>{correct}</span>", unsafe_allow_html=True)
                 else: st.markdown(f"❌ **{question_word}**: Your answer <span class='orange-text'>{selected}</span> INCORRECT. Correct: <span class='orange-text'>{correct}</span> 🙁", unsafe_allow_html=True)
-        num_q = len(st.session_state.current_word_set) if st.session_state.current_word_set else 0
-        if num_q > 0: st.subheader(f"You scored {round_score}/{num_q} this round.")
-        else: st.subheader("No questions in this round to score.")
-        round_scored_key = f"round_{st.session_state.round_number}_main_score"
-        if not st.session_state.get(round_scored_key, False): st.session_state.score += round_score; st.session_state[round_scored_key] = True
+        if st.session_state.current_word_set:
+            st.subheader(f"You scored {round_score}/{len(st.session_state.current_word_set)} this round.")
+            round_scored_key = f"round_{st.session_state.round_number}_main_score"
+            if not st.session_state.get(round_scored_key, False): st.session_state.score += round_score; st.session_state[round_scored_key] = True
     st.metric(label="Total Score", value=st.session_state.score)
     st.metric(label="🔥 Overall Correct Streak", value=st.session_state.overall_correct_streak)
     st.info(f"✨ {random.choice(motivational_quotes)} ✨")
     col1, col2 = st.columns(2)
-    with col1: st.button("Next Set of Words ➡️", on_click=setup_next_round_callback, use_container_width=True, key=f"next_btn_{st.session_state.round_number}")
-    with col2: st.button("Restart Game 🔄", on_click=restart_game_callback, use_container_width=True, key=f"restart_btn_{st.session_state.round_number}")
-
+    with col1:
+        if st.button("Next Set of Words ➡️", use_container_width=True, key=f"next_round_{st.session_state.round_number}"):
+            st.session_state.round_number += 1
+            st.session_state.stage = "learning_individual"
+            st.session_state.current_word_set = get_new_word_set(st.session_state.all_words_loaded, 10, st.session_state.seen_words_indices)
+            st.session_state.test_questions_cache = {} # Clear cache for the new round's questions
+            if not st.session_state.current_word_set: st.error("No new words."); st.session_state.stage = "welcome"
+            else: st.session_state.current_learning_word_index = 0; st.session_state.learning_word_start_time = time.time()
+            st.session_state.test_answers = {}; 
+            if 'submitted_test' in st.session_state: del st.session_state.submitted_test
+            st.rerun()
+    with col2:
+        if st.button("Restart Game 🔄", use_container_width=True, key=f"restart_game_{st.session_state.round_number}"):
+            current_quiz_dir = st.session_state.get("quiz_direction", "Polish to English")
+            loaded_words = st.session_state.get("all_words_loaded", [])
+            for key in list(st.session_state.keys()): del st.session_state[key]
+            for key, value in default_session_state.items(): st.session_state[key] = value
+            st.session_state.quiz_direction = current_quiz_dir; st.session_state.all_words_loaded = loaded_words
+            st.rerun()
 else:
-    st.error("Unknown application stage. Resetting."); st.session_state.stage = "welcome"; st.rerun()
+    st.error("Unknown stage. Resetting."); st.session_state.stage = "welcome"; st.rerun()
